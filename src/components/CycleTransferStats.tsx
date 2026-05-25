@@ -42,21 +42,26 @@ export const CycleTransferStatsCard: React.FC<CycleTransferStatsProps> = ({
 
 						// Support per-server max values (map) or single max value (number)
 						const max =
-							typeof cycleData.max === "object"
-								? (cycleData.max[serverId] ?? 0)
+							typeof cycleData.max === "object" && cycleData.max !== null
+								? cycleData.max[serverId]
 								: cycleData.max;
 
 						// Support per-server from values (map) or single from value (string)
 						const from =
-							typeof cycleData.from === "object"
-								? (cycleData.from[serverId] ?? "")
+							typeof cycleData.from === "object" && cycleData.from !== null
+								? cycleData.from[serverId]
 								: cycleData.from;
 
 						// Support per-server to values (map) or single to value (string)
 						const to =
-							typeof cycleData.to === "object"
-								? (cycleData.to[serverId] ?? "")
+							typeof cycleData.to === "object" && cycleData.to !== null
+								? cycleData.to[serverId]
 								: cycleData.to;
+
+						// Skip rendering when required fields are missing or would cause invalid display
+						if (!max || !from || !to) {
+							return null;
+						}
 
 						return (
 							<CycleTransferStatsClient

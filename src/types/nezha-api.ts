@@ -128,10 +128,10 @@ export interface CycleTransferStats {
 
 export interface CycleTransferData {
 	name: string;
-	from: string;
-	to: string;
-	max: number;
-	min: number;
+	from: string | { [key: string]: string };
+	to: string | { [key: string]: string };
+	max: number | { [key: string]: number };
+	min: number | { [key: string]: number };
 	server_name: {
 		[key: string]: string;
 	};

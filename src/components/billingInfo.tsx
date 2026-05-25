@@ -13,7 +13,7 @@ export default function BillingInfo({
 	parsedData: PublicNoteData;
 }) {
 	const { t } = useTranslation();
-	if (!parsedData || !parsedData.billingDataMod) {
+	if (!parsedData?.billingDataMod) {
 		return null;
 	}
 

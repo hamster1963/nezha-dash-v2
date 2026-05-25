@@ -5,7 +5,7 @@ export default function PlanInfo({
 }: {
 	parsedData: PublicNoteData;
 }) {
-	if (!parsedData || !parsedData.planDataMod) {
+	if (!parsedData?.planDataMod) {
 		return null;
 	}
 

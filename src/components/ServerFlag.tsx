@@ -36,7 +36,7 @@ export default function ServerFlag({
 		};
 
 		checkEmojiSupport();
-	}, [forceUseSvgFlag]);
+	}, []);
 
 	if (!country_code) return null;
 

@@ -23,6 +23,31 @@ type ChartContextProps = {
 
 const ChartContext = React.createContext<ChartContextProps | null>(null);
 
+const RESPONSIVE_CHART_TYPES = new Set<React.ElementType>([
+	RechartsPrimitive.AreaChart,
+	RechartsPrimitive.BarChart,
+	RechartsPrimitive.ComposedChart,
+	RechartsPrimitive.LineChart,
+	RechartsPrimitive.PieChart,
+	RechartsPrimitive.RadarChart,
+	RechartsPrimitive.RadialBarChart,
+	RechartsPrimitive.ScatterChart,
+	RechartsPrimitive.Treemap,
+	RechartsPrimitive.FunnelChart,
+	RechartsPrimitive.Sankey,
+]);
+
+function shouldUseResponsiveContainer(children: React.ReactNode) {
+	const elements = React.Children.toArray(children);
+
+	return elements.length > 0 &&
+		elements.every(
+			(child) =>
+				React.isValidElement(child) &&
+				RESPONSIVE_CHART_TYPES.has(child.type as React.ElementType),
+		);
+}
+
 function useChart() {
 	const context = React.useContext(ChartContext);
 
@@ -44,6 +69,7 @@ const ChartContainer = React.forwardRef<
 >(({ id, className, children, config, ...props }, ref) => {
 	const uniqueId = React.useId();
 	const chartId = `chart-${id || uniqueId.replace(/:/g, "")}`;
+	const useResponsiveContainer = shouldUseResponsiveContainer(children);
 
 	return (
 		<ChartContext.Provider value={{ config }}>
@@ -57,9 +83,13 @@ const ChartContainer = React.forwardRef<
 				{...props}
 			>
 				<ChartStyle id={chartId} config={config} />
-				<RechartsPrimitive.ResponsiveContainer>
-					{children}
-				</RechartsPrimitive.ResponsiveContainer>
+				{useResponsiveContainer ? (
+					<RechartsPrimitive.ResponsiveContainer>
+						{children}
+					</RechartsPrimitive.ResponsiveContainer>
+				) : (
+					children
+				)}
 			</div>
 		</ChartContext.Provider>
 	);

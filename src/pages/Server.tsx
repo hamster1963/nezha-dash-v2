@@ -352,14 +352,13 @@ export default function Servers() {
 				</section>
 				<div
 					className={cn(
-						"flex h-8 items-center rounded-full border border-stone-200 bg-white text-sm text-stone-600 shadow-xs transition-all dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300 dark:shadow-none shrink-0",
+						"flex h-8 items-center rounded-full border border-stone-200 bg-white text-sm text-stone-600 shadow-xs transition-all dark:border-stone-800 dark:bg-stone-800 dark:text-stone-300 dark:shadow-none shrink-0",
 						{
 							"dark:border-stone-600/80 dark:bg-stone-800/80 bg-white/75":
 								customBackgroundImage,
 						},
 						{
-							"border-blue-400/90 text-blue-600 dark:border-blue-400/70 dark:text-blue-400":
-								sortType !== "default",
+							" text-blue-600  dark:text-blue-400": sortType !== "default",
 						},
 					)}
 				>
@@ -369,13 +368,16 @@ export default function Servers() {
 						disabled={sortType === "default"}
 						className="flex h-full cursor-pointer items-center gap-1.5 px-3 disabled:cursor-not-allowed disabled:opacity-40"
 					>
-						{sortOrder === "asc" && sortType !== "default" ? (
-							<ArrowUpIcon className="size-3.5 shrink-0" />
-						) : sortOrder === "desc" && sortType !== "default" ? (
-							<ArrowDownIcon className="size-3.5 shrink-0" />
-						) : (
-							<ArrowsUpDownIcon className="size-3.5 shrink-0" />
-						)}
+						<div className="text-stone-900 dark:text-stone-100">
+							{sortOrder === "asc" && sortType !== "default" ? (
+								<ArrowUpIcon className="size-3.5 shrink-0" />
+							) : sortOrder === "desc" && sortType !== "default" ? (
+								<ArrowDownIcon className="size-3.5 shrink-0" />
+							) : (
+								<ArrowsUpDownIcon className="size-3.5 shrink-0" />
+							)}
+						</div>
+
 						<span className="font-medium text-stone-900 dark:text-stone-100">
 							Sort
 						</span>

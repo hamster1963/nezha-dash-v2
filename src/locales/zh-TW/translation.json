@@ -140,5 +140,21 @@
 		"offlineReady": "可離線使用之應用程式",
 		"newContent": "有新内容可用",
 		"reload": "更新"
+	},
+	"sort": {
+		"label": "排序",
+		"types": {
+			"default": "預設",
+			"name": "名稱",
+			"uptime": "運行時間",
+			"system": "系統",
+			"cpu": "CPU",
+			"mem": "記憶體",
+			"disk": "磁碟",
+			"up": "上傳",
+			"down": "下載",
+			"up_total": "上傳總量",
+			"down_total": "下載總量"
+		}
 	}
 }

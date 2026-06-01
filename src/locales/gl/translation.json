@@ -133,5 +133,21 @@
 	"ToggleLightMode": "Cambiar ao modo claro",
 	"ToggleDarkMode": "Cambiar ao modo escuro",
 	"ToggleSystemMode": "Cambiar ao determinado polo sistema",
-	"Home": "Páxina principal"
+	"Home": "Páxina principal",
+	"sort": {
+		"label": "Ordenar",
+		"types": {
+			"default": "Predeterminado",
+			"name": "Nome",
+			"uptime": "Tempo activo",
+			"system": "Sistema",
+			"cpu": "CPU",
+			"mem": "Memoria",
+			"disk": "Disco",
+			"up": "Subida",
+			"down": "Baixada",
+			"up_total": "Subida total",
+			"down_total": "Baixada total"
+		}
+	}
 }

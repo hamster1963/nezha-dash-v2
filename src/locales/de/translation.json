@@ -122,5 +122,21 @@
 	"footer": {
 		"themeBy": "Design von "
 	},
-	"login": "Login"
+	"login": "Login",
+	"sort": {
+		"label": "Sortieren",
+		"types": {
+			"default": "Standard",
+			"name": "Name",
+			"uptime": "Betriebszeit",
+			"system": "System",
+			"cpu": "CPU",
+			"mem": "RAM",
+			"disk": "Festplatte",
+			"up": "Upload",
+			"down": "Download",
+			"up_total": "Upload ges.",
+			"down_total": "Download ges."
+		}
+	}
 }

@@ -145,5 +145,21 @@
 	"ToggleLightMode": "切换亮色模式",
 	"ToggleDarkMode": "切换暗色模式",
 	"ToggleSystemMode": "切换系统模式",
-	"Home": "首页"
+	"Home": "首页",
+	"sort": {
+		"label": "排序",
+		"types": {
+			"default": "默认",
+			"name": "名称",
+			"uptime": "运行时间",
+			"system": "系统",
+			"cpu": "CPU",
+			"mem": "内存",
+			"disk": "磁盘",
+			"up": "上传",
+			"down": "下载",
+			"up_total": "上传总量",
+			"down_total": "下载总量"
+		}
+	}
 }

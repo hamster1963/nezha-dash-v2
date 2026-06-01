@@ -1,1 +1,18 @@
-{}
+{
+	"sort": {
+		"label": "Trier",
+		"types": {
+			"default": "Défaut",
+			"name": "Nom",
+			"uptime": "Disponibilité",
+			"system": "Système",
+			"cpu": "CPU",
+			"mem": "Mémoire",
+			"disk": "Disque",
+			"up": "Envoi",
+			"down": "Réception",
+			"up_total": "Total envoi",
+			"down_total": "Total réception"
+		}
+	}
+}

@@ -144,5 +144,21 @@
 	"ToggleLightMode": "Toggle Light Mode",
 	"ToggleDarkMode": "Toggle Dark Mode",
 	"ToggleSystemMode": "Toggle System Mode",
-	"Home": "Home"
+	"Home": "Home",
+	"sort": {
+		"label": "Sort",
+		"types": {
+			"default": "Default",
+			"name": "Name",
+			"uptime": "Uptime",
+			"system": "System",
+			"cpu": "CPU",
+			"mem": "Mem",
+			"disk": "Disk",
+			"up": "Up",
+			"down": "Down",
+			"up_total": "Up Total",
+			"down_total": "Down Total"
+		}
+	}
 }

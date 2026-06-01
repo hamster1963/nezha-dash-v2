@@ -388,7 +388,7 @@ export default function Servers() {
 							className="pointer-events-none select-none opacity-0 text-sm font-medium whitespace-nowrap"
 							aria-hidden
 						>
-							{sortType.charAt(0).toUpperCase() + sortType.slice(1)}
+							{t(`sort.types.${sortType.replace(/ /g, "_")}`)}
 						</span>
 						<select
 							aria-label="Sort metric"
@@ -402,7 +402,7 @@ export default function Servers() {
 						>
 							{SORT_TYPES.map((type) => (
 								<option key={type} value={type}>
-									{type.charAt(0).toUpperCase() + type.slice(1)}
+									{t(`sort.types.${type.replace(/ /g, "_")}`)}
 								</option>
 							))}
 						</select>

@@ -141,5 +141,21 @@
 		"themeBy": "Тема от "
 	},
 	"NoResults": "Ничего не найдено.",
-	"nezha": "Nezha Monitoring"
+	"nezha": "Nezha Monitoring",
+	"sort": {
+		"label": "Сортировка",
+		"types": {
+			"default": "По умолчанию",
+			"name": "Имя",
+			"uptime": "Аптайм",
+			"system": "Система",
+			"cpu": "CPU",
+			"mem": "Память",
+			"disk": "Диск",
+			"up": "Загрузка",
+			"down": "Скачивание",
+			"up_total": "Загружено",
+			"down_total": "Скачано"
+		}
+	}
 }

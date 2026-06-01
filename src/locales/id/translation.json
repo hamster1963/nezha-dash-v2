@@ -23,5 +23,21 @@
 	"theme": {
 		"light": "Terang",
 		"dark": "Gelap"
+	},
+	"sort": {
+		"label": "Urutkan",
+		"types": {
+			"default": "Bawaan",
+			"name": "Nama",
+			"uptime": "Waktu aktif",
+			"system": "Sistem",
+			"cpu": "CPU",
+			"mem": "Memori",
+			"disk": "Disk",
+			"up": "Upload",
+			"down": "Download",
+			"up_total": "Total upload",
+			"down_total": "Total download"
+		}
 	}
 }

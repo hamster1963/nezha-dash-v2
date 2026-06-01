@@ -137,5 +137,21 @@
 	"ToggleSystemMode": "Activar modo del sistema",
 	"footer": {
 		"themeBy": "Tema por. "
+	},
+	"sort": {
+		"label": "Ordenar",
+		"types": {
+			"default": "Predeterminado",
+			"name": "Nombre",
+			"uptime": "Tiempo activo",
+			"system": "Sistema",
+			"cpu": "CPU",
+			"mem": "Memoria",
+			"disk": "Disco",
+			"up": "Subida",
+			"down": "Bajada",
+			"up_total": "Subida total",
+			"down_total": "Bajada total"
+		}
 	}
 }

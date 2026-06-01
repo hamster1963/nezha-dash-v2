@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { m } from "framer-motion";
 import * as React from "react";
 import { useCallback, useMemo } from "react";
@@ -41,7 +41,6 @@ import {
 } from "@/lib/nezha-api";
 import { cn, formatTime } from "@/lib/utils";
 import type { NezhaMonitor, ServerMonitorChart } from "@/types/nezha-api";
-
 import NetworkChartLoading from "./NetworkChartLoading";
 import { Label } from "./ui/label";
 import { Switch } from "./ui/switch";
@@ -50,6 +49,8 @@ interface ResultItem {
 	created_at: number;
 	[key: string]: number;
 }
+
+const MIN_PERIOD_LOADING_MS = 500;
 
 /**
  * Helper method to calculate packet loss from delay data
@@ -148,10 +149,11 @@ export function NetworkChart({
 		}
 	}, [isLogin, period]);
 
-	const { data: monitorData } = useQuery({
+	const { data: monitorData, isPlaceholderData } = useQuery({
 		queryKey: ["monitor", server_id, period],
 		queryFn: () => fetchMonitor(server_id, period),
 		enabled: show,
+		placeholderData: keepPreviousData,
 		refetchOnMount: true,
 		refetchOnWindowFocus: true,
 		refetchInterval: 10000,
@@ -215,6 +217,7 @@ export function NetworkChart({
 			chartData={transformedData}
 			serverName={monitorData.data[0].server_name}
 			formattedData={formattedData}
+			isPeriodLoading={isPlaceholderData}
 			period={period}
 			onPeriodChange={setPeriod}
 			isLogin={isLogin}
@@ -228,6 +231,7 @@ export const NetworkChartClient = React.memo(function NetworkChart({
 	chartData,
 	serverName,
 	formattedData,
+	isPeriodLoading,
 	period,
 	onPeriodChange,
 	isLogin,
@@ -237,17 +241,50 @@ export const NetworkChartClient = React.memo(function NetworkChart({
 	chartData: ServerMonitorChart;
 	serverName: string;
 	formattedData: ResultItem[];
+	isPeriodLoading: boolean;
 	period: MonitorPeriod;
 	onPeriodChange: (period: MonitorPeriod) => void;
 	isLogin: boolean;
 }) {
 	const { t } = useTranslation();
+	const [showPeriodLoading, setShowPeriodLoading] = React.useState(false);
+	const loadingStartedAtRef = React.useRef<number | null>(null);
 
 	const TIME_RANGE_OPTIONS: { value: MonitorPeriod; label: string }[] = [
 		{ value: "1d", label: t("monitor.period1d") },
 		{ value: "7d", label: t("monitor.period7d") },
 		{ value: "30d", label: t("monitor.period30d") },
 	];
+
+	React.useEffect(() => {
+		let timeoutId: number | undefined;
+
+		if (isPeriodLoading) {
+			loadingStartedAtRef.current = Date.now();
+			setShowPeriodLoading(true);
+			return;
+		}
+
+		const loadingStartedAt = loadingStartedAtRef.current;
+		if (loadingStartedAt === null) {
+			setShowPeriodLoading(false);
+			return;
+		}
+
+		const elapsed = Date.now() - loadingStartedAt;
+		const remaining = Math.max(0, MIN_PERIOD_LOADING_MS - elapsed);
+
+		timeoutId = window.setTimeout(() => {
+			setShowPeriodLoading(false);
+			loadingStartedAtRef.current = null;
+		}, remaining);
+
+		return () => {
+			if (timeoutId !== undefined) {
+				window.clearTimeout(timeoutId);
+			}
+		};
+	}, [isPeriodLoading]);
 
 	const customBackgroundImage =
 		(window.CustomBackgroundImage as string) !== ""
@@ -631,7 +668,10 @@ export const NetworkChartClient = React.memo(function NetworkChart({
 						)}
 						<ChartContainer
 							config={chartConfig}
-							className="aspect-auto h-[250px] w-full"
+							className={cn(
+								"aspect-auto h-62.5 w-full transition-opacity",
+								showPeriodLoading && "opacity-60",
+							)}
 						>
 							<ComposedChart
 								accessibilityLayer
@@ -746,6 +786,15 @@ export const NetworkChartClient = React.memo(function NetworkChart({
 								{chartElements}
 							</ComposedChart>
 						</ChartContainer>
+						{showPeriodLoading && (
+							<div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center rounded-md backdrop-blur-[1px]">
+								<div className="flex size-9 items-center justify-center">
+									<div className="absolute inset-0 flex items-center justify-center">
+										<div className="size-4 rounded-full border-2 border-muted-foreground/20 border-t-muted-foreground/70 animate-spin" />
+									</div>
+								</div>
+							</div>
+						)}
 					</div>
 				</CardContent>
 			</Card>

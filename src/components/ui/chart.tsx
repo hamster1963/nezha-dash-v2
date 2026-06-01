@@ -40,12 +40,14 @@ const RESPONSIVE_CHART_TYPES = new Set<React.ElementType>([
 function shouldUseResponsiveContainer(children: React.ReactNode) {
 	const elements = React.Children.toArray(children);
 
-	return elements.length > 0 &&
+	return (
+		elements.length > 0 &&
 		elements.every(
 			(child) =>
 				React.isValidElement(child) &&
 				RESPONSIVE_CHART_TYPES.has(child.type as React.ElementType),
-		);
+		)
+	);
 }
 
 function useChart() {

@@ -30,37 +30,50 @@ export function ThemeProvider({
 
 	useEffect(() => {
 		const root = window.document.documentElement;
+		const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
-		root.classList.add("disable-transitions");
-		root.classList.remove("light", "dark");
-
-		if (theme === "system") {
-			const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
-				.matches
-				? "dark"
-				: "light";
-
-			root.classList.add(systemTheme);
+		const updateThemeColor = (nextTheme: "light" | "dark") => {
 			const themeColor =
-				systemTheme === "dark" ? "hsl(30 15% 8%)" : "hsl(0 0% 98%)";
+				nextTheme === "dark" ? "hsl(30 15% 8%)" : "hsl(0 0% 98%)";
 			document
 				.querySelector('meta[name="theme-color"]')
 				?.setAttribute("content", themeColor);
-			const timeoutId = window.setTimeout(() => {
-				root.classList.remove("disable-transitions");
-			}, 0);
-			return () => window.clearTimeout(timeoutId);
+		};
+
+		const applyTheme = (nextTheme: "light" | "dark") => {
+			root.classList.remove("light", "dark");
+			root.classList.add(nextTheme);
+			root.style.colorScheme = nextTheme;
+			root.style.backgroundColor =
+				nextTheme === "dark" ? "hsl(30 15% 8%)" : "hsl(0 0% 98%)";
+			updateThemeColor(nextTheme);
+		};
+
+		root.classList.add("disable-transitions");
+
+		let cleanupMediaListener: (() => void) | undefined;
+
+		if (theme === "system") {
+			const applySystemTheme = () => {
+				applyTheme(mediaQuery.matches ? "dark" : "light");
+			};
+
+			applySystemTheme();
+			mediaQuery.addEventListener("change", applySystemTheme);
+			cleanupMediaListener = () =>
+				mediaQuery.removeEventListener("change", applySystemTheme);
+		} else {
+			applyTheme(theme);
 		}
 
-		root.classList.add(theme);
-		const themeColor = theme === "dark" ? "hsl(30 15% 8%)" : "hsl(0 0% 98%)";
-		document
-			.querySelector('meta[name="theme-color"]')
-			?.setAttribute("content", themeColor);
 		const timeoutId = window.setTimeout(() => {
 			root.classList.remove("disable-transitions");
 		}, 0);
-		return () => window.clearTimeout(timeoutId);
+
+		return () => {
+			window.clearTimeout(timeoutId);
+			cleanupMediaListener?.();
+		};
 	}, [theme]);
 
 	const value = {

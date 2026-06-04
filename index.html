@@ -2,93 +2,48 @@
 <html lang="en">
   <head>
     <script>
-      // 在页面渲染前就执行主题初始化
-      try {
-        const storageKey = "vite-ui-theme"
-        let theme = localStorage.getItem(storageKey)
-        if (theme === "system" || !theme) {
-          theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
-        }
-        document.documentElement.classList.add(theme)
-      } catch (_e) {
-        document.documentElement.classList.add("light")
-      }
-    </script>
-    <style>
-      /* Prevent FOUC in Safari */
-      html:not(.dark):not(.light) * {
-        visibility: hidden;
-      }
-
-      :root {
-        color-scheme: light;
-        --bg: #ffffff;
-      }
-
-      html.dark {
-        color-scheme: dark;
-        --bg: #242424;
-      }
-
-      html.light {
-        color-scheme: light;
-        --bg: #ffffff;
-      }
-
-      html {
-        background-color: var(--bg);
-      }
-
-      body {
-        background-color: var(--bg);
-      }
-
-      #root {
-        background-color: var(--bg);
-        visibility: hidden;
-      }
-
-      #root.loaded {
-        visibility: visible;
-        animation: fadein 0.2s;
-      }
-
-      @keyframes fadein {
-        from {
-          opacity: 0;
-        }
-        to {
-          opacity: 1;
-        }
-      }
-    </style>
-    <script>
       ;(() => {
         const storageKey = "vite-ui-theme"
-        const theme = localStorage.getItem(storageKey) || "system"
         const root = document.documentElement
+        const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)")
 
-        function updateThemeColor(isDark) {
-          const themeColor = isDark ? "#242424" : "#fafafa"
-          document.querySelector('meta[name="theme-color"]')?.setAttribute("content", themeColor)
+        const resolveTheme = (theme) =>
+          theme === "system" ? (mediaQuery.matches ? "dark" : "light") : theme
+
+        function updateThemeColor(nextTheme) {
+          const themeColor = nextTheme === "dark" ? "hsl(30 15% 8%)" : "hsl(0 0% 98%)"
+          let meta = document.querySelector('meta[name="theme-color"]')
+
+          if (!meta) {
+            meta = document.createElement("meta")
+            meta.setAttribute("name", "theme-color")
+            document.head.appendChild(meta)
+          }
+
+          meta.setAttribute("content", themeColor)
         }
 
-        function setTheme(newTheme) {
+        function applyResolvedTheme(resolvedTheme) {
           root.classList.remove("light", "dark")
-          root.classList.add(newTheme)
-          updateThemeColor(newTheme === "dark")
+          root.classList.add(resolvedTheme)
+          root.style.colorScheme = resolvedTheme
+          root.style.backgroundColor =
+            resolvedTheme === "dark" ? "hsl(30 15% 8%)" : "hsl(0 0% 98%)"
+          updateThemeColor(resolvedTheme)
         }
 
-        if (theme === "system") {
-          const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
-          setTheme(systemTheme)
+        let theme = "system"
 
-          window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
-            setTheme(e.matches ? "dark" : "light")
-          })
-        } else {
-          setTheme(theme)
+        try {
+          const storedTheme = localStorage.getItem(storageKey)
+          if (storedTheme === "light" || storedTheme === "dark" || storedTheme === "system") {
+            theme = storedTheme
+          }
+        } catch (_e) {
+          theme = "system"
         }
+
+        applyResolvedTheme(resolveTheme(theme))
 
         // Add loaded class after React has mounted
         window.addEventListener("load", () => {

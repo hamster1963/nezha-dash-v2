@@ -8,7 +8,12 @@ export function ThemeColorManager() {
 
 	useEffect(() => {
 		const updateThemeColor = () => {
-			const currentTheme = theme;
+			const currentTheme =
+				theme === "system"
+					? window.matchMedia("(prefers-color-scheme: dark)").matches
+						? "dark"
+						: "light"
+					: theme;
 			const meta = document.querySelector('meta[name="theme-color"]');
 
 			if (!meta) {

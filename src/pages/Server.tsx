@@ -20,7 +20,7 @@ import { SORT_TYPES } from "@/context/sort-context";
 import { useSort } from "@/hooks/use-sort";
 import { useStatus } from "@/hooks/use-status";
 import { useWebSocketContext } from "@/hooks/use-websocket-context";
-import { fetchServerGroup } from "@/lib/nezha-api";
+import { fetchServerGroup, fetchService } from "@/lib/nezha-api";
 import { cn, formatNezhaInfo } from "@/lib/utils";
 import type { NezhaWebsocketResponse, ServerGroup } from "@/types/nezha-api";
 
@@ -31,6 +31,16 @@ export default function Servers() {
 		queryKey: ["server-group"],
 		queryFn: () => fetchServerGroup(),
 	});
+	const { data: serviceData } = useQuery({
+		queryKey: ["service"],
+		queryFn: () => fetchService(),
+		refetchOnMount: true,
+		refetchOnWindowFocus: true,
+		refetchInterval: 10000,
+	});
+	const hasServices =
+		!!serviceData?.data?.services &&
+		Object.keys(serviceData.data.services).length > 0;
 	const { lastMessage, connected } = useWebSocketContext();
 	const { status } = useStatus();
 	const [showServices, setShowServices] = useState<string>("0");
@@ -68,6 +78,12 @@ export default function Servers() {
 			setShowServices(showServicesState);
 		}
 	}, []);
+
+	useEffect(() => {
+		if (!hasServices) {
+			setShowServices("0");
+		}
+	}, [hasServices]);
 
 	useEffect(() => {
 		const checkInlineSettings = () => {
@@ -305,27 +321,29 @@ export default function Servers() {
 					>
 						<MapIcon className="size-[13px]" />
 					</button>
-					<button
-						onClick={() => {
-							setShowServices(showServices === "0" ? "1" : "0");
-							localStorage.setItem(
-								"showServices",
-								showServices === "0" ? "1" : "0",
-							);
-						}}
-						className={cn(
-							"inset-shadow-2xs inset-shadow-white/20 flex cursor-pointer flex-col items-center gap-0 rounded-[50px] bg-blue-100 p-2.5 text-blue-600 transition-all dark:bg-blue-900 dark:text-blue-100",
-							{
-								"inset-shadow-black/20 bg-blue-600 text-white dark:bg-blue-100 dark:text-blue-600":
-									showServices === "1",
-							},
-							{
-								"bg-opacity-70 dark:bg-opacity-70": customBackgroundImage,
-							},
-						)}
-					>
-						<ChartBarSquareIcon className="size-[13px]" />
-					</button>
+					{hasServices && (
+						<button
+							onClick={() => {
+								setShowServices(showServices === "0" ? "1" : "0");
+								localStorage.setItem(
+									"showServices",
+									showServices === "0" ? "1" : "0",
+								);
+							}}
+							className={cn(
+								"inset-shadow-2xs inset-shadow-white/20 flex cursor-pointer flex-col items-center gap-0 rounded-[50px] bg-blue-100 p-2.5 text-blue-600 transition-all dark:bg-blue-900 dark:text-blue-100",
+								{
+									"inset-shadow-black/20 bg-blue-600 text-white dark:bg-blue-100 dark:text-blue-600":
+										showServices === "1",
+								},
+								{
+									"bg-opacity-70 dark:bg-opacity-70": customBackgroundImage,
+								},
+							)}
+						>
+							<ChartBarSquareIcon className="size-[13px]" />
+						</button>
+					)}
 					<button
 						onClick={() => {
 							setInline(inline === "0" ? "1" : "0");

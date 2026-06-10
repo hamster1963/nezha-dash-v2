@@ -160,5 +160,8 @@
 			"up_total": "Up Total",
 			"down_total": "Down Total"
 		}
+	},
+	"group": {
+		"all": "All"
 	}
 }

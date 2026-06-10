@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useActiveIndicator } from "@/hooks/use-active-indicator";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +12,7 @@ export default function GroupSwitch({
 	currentTab: string;
 	setCurrentTab: (tab: string) => void;
 }) {
+	const { t } = useTranslation();
 	const customBackgroundImage =
 		(window.CustomBackgroundImage as string) !== ""
 			? window.CustomBackgroundImage
@@ -117,7 +119,9 @@ export default function GroupSwitch({
 						)}
 					>
 						<div className="relative z-20 flex items-center gap-1">
-							<p className="whitespace-nowrap">{tab}</p>
+							<p className="whitespace-nowrap">
+								{tab === "All" ? t("group.all", { defaultValue: "All" }) : tab}
+							</p>
 						</div>
 					</div>
 				))}

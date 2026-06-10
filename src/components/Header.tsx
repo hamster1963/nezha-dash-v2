@@ -1,3 +1,4 @@
+import NumericText from "@numeric-text/react";
 import { useQuery } from "@tanstack/react-query";
 import { ImageMinus } from "lucide-react";
 import { DateTime } from "luxon";
@@ -180,7 +181,11 @@ function Header() {
 							},
 						)}
 					>
-						{connected ? onlineCount : <Loader visible={true} />}
+						{connected ? (
+							<NumericText value={onlineCount} />
+						) : (
+							<Loader visible={true} />
+						)}
 						<p className="text-muted-foreground">
 							{connected ? t("online") : t("offline")}
 						</p>

@@ -14,6 +14,9 @@ importers:
       '@heroicons/react':
         specifier: 2.2.0
         version: 2.2.0(react@19.2.6)
+      '@numeric-text/react':
+        specifier: ^0.1.4
+        version: 0.1.4(react@19.2.6)
       '@radix-ui/react-accordion':
         specifier: 1.2.12
         version: 1.2.12(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -274,6 +277,14 @@ packages:
     peerDependencies:
       '@emnapi/core': ^1.7.1
       '@emnapi/runtime': ^1.7.1
+
+  '@numeric-text/core@0.1.4':
+    resolution: {integrity: sha512-tMaH5u/kdpw3AP+XJMnDWyq39zVHoP80NCLTFwzVept64dIAMKBNLlYtUK0+EULiyFg6IiSwswmc9tMukV1tLw==}
+
+  '@numeric-text/react@0.1.4':
+    resolution: {integrity: sha512-i1t18jSzn168nl9jYrC+W1FlPexjy0dbAa9bofykaL44ogu+puLg2f5roVA3xOUgjL6bSojv+wKUA/ZRRshwEw==}
+    peerDependencies:
+      react: ^18 || ^19
 
   '@oxc-project/types@0.132.0':
     resolution: {integrity: sha512-FESMOxil5Se014ui/Eq8fT5uHJo6nIRwH0PfJrZJXs6Gek3ZVFOrpUv3YIZT20m+extU98Hg1Ym72U58rlsxUQ==}
@@ -1799,6 +1810,13 @@ snapshots:
       '@emnapi/runtime': 1.10.0
       '@tybys/wasm-util': 0.10.2
     optional: true
+
+  '@numeric-text/core@0.1.4': {}
+
+  '@numeric-text/react@0.1.4(react@19.2.6)':
+    dependencies:
+      '@numeric-text/core': 0.1.4
+      react: 19.2.6
 
   '@oxc-project/types@0.132.0': {}
 

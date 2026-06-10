@@ -2,6 +2,7 @@ import {
 	ArrowDownCircleIcon,
 	ArrowUpCircleIcon,
 } from "@heroicons/react/20/solid";
+import NumericText from "@numeric-text/react";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "@/components/ui/card";
 import { useStatus } from "@/hooks/use-status";
@@ -63,7 +64,7 @@ export default function ServerOverview({
 							<span className="relative flex h-2 w-2">
 								<span className="relative inline-flex h-2 w-2 rounded-full bg-blue-500"></span>
 							</span>
-							<div className="text-lg font-semibold">{total}</div>
+							<NumericText value={total} className="text-lg font-semibold" />
 						</div>
 					</section>
 				</CardContent>
@@ -93,8 +94,7 @@ export default function ServerOverview({
 								<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-75"></span>
 								<span className="relative inline-flex h-2 w-2 rounded-full bg-green-500"></span>
 							</span>
-
-							<div className="text-lg font-semibold">{online}</div>
+							<NumericText value={online} className="text-lg font-semibold" />
 						</div>
 					</section>
 				</CardContent>
@@ -124,7 +124,7 @@ export default function ServerOverview({
 								<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75"></span>
 								<span className="relative inline-flex h-2 w-2 rounded-full bg-red-500"></span>
 							</span>
-							<div className="text-lg font-semibold">{offline}</div>
+							<NumericText value={offline} className="text-lg font-semibold" />
 						</div>
 					</section>
 				</CardContent>
@@ -145,12 +145,14 @@ export default function ServerOverview({
 							</p>
 						</div>
 						<section className="flex items-start flex-row z-10 pr-0 gap-1">
-							<p className="sm:text-[12px] text-[10px] text-blue-800 dark:text-blue-400   text-nowrap font-medium">
-								↑{formatBytes(up)}
-							</p>
-							<p className="sm:text-[12px] text-[10px]  text-purple-800 dark:text-purple-400  text-nowrap font-medium">
-								↓{formatBytes(down)}
-							</p>
+							<NumericText
+								value={`↑${formatBytes(up)}`}
+								className="sm:text-[12px] text-[10px] text-blue-800 dark:text-blue-400  text-nowrap font-medium"
+							/>
+							<NumericText
+								value={`↓${formatBytes(down)}`}
+								className="sm:text-[12px] text-[10px]  text-purple-800 dark:text-purple-400  text-nowrap font-medium"
+							/>
 						</section>
 						<section className="flex flex-col sm:flex-row -mr-1 sm:items-center items-start gap-1">
 							<p className="text-[11px] flex items-center text-nowrap font-semibold">

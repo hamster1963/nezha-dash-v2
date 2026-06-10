@@ -1,7 +1,6 @@
 "use client";
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { m } from "framer-motion";
 import * as React from "react";
 import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -34,6 +33,7 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useActiveIndicator } from "@/hooks/use-active-indicator";
 import {
 	fetchLoginUser,
 	fetchMonitor,
@@ -250,11 +250,20 @@ export const NetworkChartClient = React.memo(function NetworkChart({
 	const [showPeriodLoading, setShowPeriodLoading] = React.useState(false);
 	const loadingStartedAtRef = React.useRef<number | null>(null);
 
-	const TIME_RANGE_OPTIONS: { value: MonitorPeriod; label: string }[] = [
-		{ value: "1d", label: t("monitor.period1d") },
-		{ value: "7d", label: t("monitor.period7d") },
-		{ value: "30d", label: t("monitor.period30d") },
-	];
+	const TIME_RANGE_OPTIONS = useMemo<{ value: MonitorPeriod; label: string }[]>(
+		() => [
+			{ value: "1d", label: t("monitor.period1d") },
+			{ value: "7d", label: t("monitor.period7d") },
+			{ value: "30d", label: t("monitor.period30d") },
+		],
+		[t],
+	);
+	const timeRangeValues = useMemo(
+		() => TIME_RANGE_OPTIONS.map((option) => option.value),
+		[TIME_RANGE_OPTIONS],
+	);
+	const { containerRef, enableIndicatorAnimation, indicator, setItemRef } =
+		useActiveIndicator(timeRangeValues, period);
 
 	React.useEffect(() => {
 		let timeoutId: number | undefined;
@@ -581,13 +590,33 @@ export const NetworkChartClient = React.memo(function NetworkChart({
 		<div className="flex flex-col gap-3">
 			<div className="flex items-center gap-3 sm:-mt-5 -mt-3 flex-wrap">
 				<TooltipProvider delayDuration={120}>
-					<div className="flex items-center gap-1 rounded-full bg-muted dark:bg-muted/40 p-0.5 border border-border/60 dark:border-border">
-						{TIME_RANGE_OPTIONS.map((option) => {
+					<div
+						ref={containerRef}
+						className="relative flex items-center gap-1 rounded-full bg-muted dark:bg-muted/40 p-0.5 border border-border/60 dark:border-border"
+					>
+						{indicator && (
+							<div
+								className="active-indicator-fade-in absolute left-0 top-0 z-10 bg-white dark:bg-background rounded-full ring-1 ring-border/60 dark:ring-border/40"
+								style={{
+									height: indicator.height,
+									transform: `translate(${indicator.x}px, ${indicator.y}px)`,
+									transition: indicator.shouldAnimate
+										? "transform 0.5s var(--timing), width 0.5s var(--timing), height 0.5s var(--timing)"
+										: "none",
+									width: indicator.width,
+								}}
+							/>
+						)}
+						{TIME_RANGE_OPTIONS.map((option, index) => {
 							const isLocked = !isLogin && option.value !== "1d";
 							const optionItem = (
 								<div
+									ref={setItemRef(index)}
 									onClick={() => {
 										if (!isLocked) {
+											if (period !== option.value) {
+												enableIndicatorAnimation();
+											}
 											onPeriodChange(option.value);
 										}
 									}}
@@ -599,17 +628,6 @@ export const NetworkChartClient = React.memo(function NetworkChart({
 										isLocked && "cursor-not-allowed opacity-40 grayscale",
 									)}
 								>
-									{period === option.value && (
-										<m.div
-											layoutId="network-period-selector-active"
-											className="absolute inset-0 z-10 h-full w-full bg-white dark:bg-background rounded-full ring-1 ring-border/60 dark:ring-border/40"
-											transition={{
-												type: "spring",
-												stiffness: 400,
-												damping: 30,
-											}}
-										/>
-									)}
 									<span className="relative z-20">{option.label}</span>
 								</div>
 							);

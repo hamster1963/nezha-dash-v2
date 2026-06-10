@@ -1,5 +1,5 @@
-import { m } from "framer-motion";
-import { createRef, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
+import { useActiveIndicator } from "@/hooks/use-active-indicator";
 import { cn } from "@/lib/utils";
 
 export default function GroupSwitch({
@@ -17,7 +17,13 @@ export default function GroupSwitch({
 			: undefined;
 
 	const scrollRef = useRef<HTMLDivElement>(null);
-	const tagRefs = useRef(tabs.map(() => createRef<HTMLDivElement>()));
+	const {
+		containerRef,
+		enableIndicatorAnimation,
+		indicator,
+		itemRefs,
+		setItemRef,
+	} = useActiveIndicator(tabs, currentTab);
 
 	useEffect(() => {
 		const container = scrollRef.current;
@@ -50,16 +56,16 @@ export default function GroupSwitch({
 	}, [tabs, setCurrentTab]);
 
 	useEffect(() => {
-		const currentTagRef = tagRefs.current[tabs.indexOf(currentTab)];
+		const currentTagRef = itemRefs.current[tabs.indexOf(currentTab)];
 
-		if (currentTagRef?.current) {
-			currentTagRef.current.scrollIntoView({
+		if (currentTagRef) {
+			currentTagRef.scrollIntoView({
 				behavior: "smooth",
 				block: "nearest",
 				inline: "center",
 			});
 		}
-	}, [currentTab, tabs.indexOf]);
+	}, [currentTab, itemRefs, tabs]);
 
 	if (tabs.length === 1 && tabs[0] === "All") {
 		return null;
@@ -71,18 +77,38 @@ export default function GroupSwitch({
 			className="scrollbar-hidden z-50 flex flex-col items-start overflow-x-scroll rounded-[50px]"
 		>
 			<div
+				ref={containerRef}
 				className={cn(
-					"flex items-center gap-1 rounded-[50px] bg-stone-100 p-[3px] dark:bg-stone-800",
+					"relative flex items-center gap-1 rounded-[50px] bg-stone-100 p-[3px] dark:bg-stone-800",
 					{
 						"bg-stone-100/70 dark:bg-stone-800/70": customBackgroundImage,
 					},
 				)}
 			>
+				{indicator && (
+					<div
+						className="active-indicator-fade-in absolute left-0 top-0 z-10 content-center bg-white shadow-lg shadow-black/5 dark:bg-stone-700 dark:shadow-white/5"
+						style={{
+							borderRadius: 46,
+							height: indicator.height,
+							transform: `translate(${indicator.x}px, ${indicator.y}px)`,
+							transition: indicator.shouldAnimate
+								? "transform 0.5s var(--timing), width 0.5s var(--timing), height 0.5s var(--timing)"
+								: "none",
+							width: indicator.width,
+						}}
+					/>
+				)}
 				{tabs.map((tab: string, index: number) => (
 					<div
 						key={tab}
-						ref={tagRefs.current[index]}
-						onClick={() => setCurrentTab(tab)}
+						ref={setItemRef(index)}
+						onClick={() => {
+							if (currentTab !== tab) {
+								enableIndicatorAnimation();
+							}
+							setCurrentTab(tab);
+						}}
 						className={cn(
 							"relative cursor-pointer rounded-3xl px-2.5 py-2 text-[13px] font-semibold transition-all duration-500  ease-in-out hover:text-stone-950  hover:dark:text-stone-50",
 							currentTab === tab
@@ -90,16 +116,6 @@ export default function GroupSwitch({
 								: "text-stone-400 dark:text-stone-500",
 						)}
 					>
-						{currentTab === tab && (
-							<m.div
-								layoutId="tab-switch"
-								className="absolute inset-0 z-10 h-full w-full content-center bg-white shadow-lg shadow-black/5 dark:bg-stone-700 dark:shadow-white/5"
-								style={{
-									originY: "0px",
-									borderRadius: 46,
-								}}
-							/>
-						)}
 						<div className="relative z-20 flex items-center gap-1">
 							<p className="whitespace-nowrap">{tab}</p>
 						</div>

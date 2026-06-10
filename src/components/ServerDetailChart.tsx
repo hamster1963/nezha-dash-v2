@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { m } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -24,6 +23,7 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useActiveIndicator } from "@/hooks/use-active-indicator";
 import { useWebSocketContext } from "@/hooks/use-websocket-context";
 import { formatBytes } from "@/lib/format";
 import {
@@ -106,17 +106,42 @@ function PeriodSelector({
 }) {
 	const { t } = useTranslation();
 
-	const periods: { value: ChartPeriod; label: string }[] = [
-		{ value: "realtime", label: t("serverDetailChart.realtime") },
-		{ value: "1d", label: t("serverDetailChart.period1d") },
-		{ value: "7d", label: t("serverDetailChart.period7d") },
-		{ value: "30d", label: t("serverDetailChart.period30d") },
-	];
+	const periods = useMemo<{ value: ChartPeriod; label: string }[]>(
+		() => [
+			{ value: "realtime", label: t("serverDetailChart.realtime") },
+			{ value: "1d", label: t("serverDetailChart.period1d") },
+			{ value: "7d", label: t("serverDetailChart.period7d") },
+			{ value: "30d", label: t("serverDetailChart.period30d") },
+		],
+		[t],
+	);
+	const periodValues = useMemo(
+		() => periods.map((period) => period.value),
+		[periods],
+	);
+	const { containerRef, enableIndicatorAnimation, indicator, setItemRef } =
+		useActiveIndicator(periodValues, selectedPeriod);
 
 	return (
 		<TooltipProvider delayDuration={120}>
-			<div className="flex gap-0.5 mb-3 flex-wrap sm:-mt-5 -mt-3 p-0.5 bg-muted dark:bg-muted/40 rounded-full w-fit border border-border/60 dark:border-border">
-				{periods.map((period) => {
+			<div
+				ref={containerRef}
+				className="relative flex gap-0.5 mb-3 flex-wrap sm:-mt-5 -mt-3 p-0.5 bg-muted dark:bg-muted/40 rounded-full w-fit border border-border/60 dark:border-border"
+			>
+				{indicator && (
+					<div
+						className="active-indicator-fade-in absolute left-0 top-0 z-10 bg-white dark:bg-background rounded-full ring-1 ring-border/60 dark:ring-border/40"
+						style={{
+							height: indicator.height,
+							transform: `translate(${indicator.x}px, ${indicator.y}px)`,
+							transition: indicator.shouldAnimate
+								? "transform 0.5s var(--timing), width 0.5s var(--timing), height 0.5s var(--timing)"
+								: "none",
+							width: indicator.width,
+						}}
+					/>
+				)}
+				{periods.map((period, index) => {
 					const isHistoryPeriod = period.value !== "realtime";
 					const isLockedByTsdb = !isTsdbEnabled && isHistoryPeriod;
 					// Only realtime and 1d are available for non-logged-in users
@@ -129,8 +154,12 @@ function PeriodSelector({
 
 					const periodItem = (
 						<div
+							ref={setItemRef(index)}
 							onClick={() => {
 								if (!isLocked) {
+									if (selectedPeriod !== period.value) {
+										enableIndicatorAnimation();
+									}
 									onPeriodChange(period.value);
 								}
 							}}
@@ -142,13 +171,6 @@ function PeriodSelector({
 								isLocked && "cursor-not-allowed opacity-40 grayscale",
 							)}
 						>
-							{selectedPeriod === period.value && (
-								<m.div
-									layoutId="period-selector-active"
-									className="absolute inset-0 z-10 h-full w-full bg-white dark:bg-background rounded-full ring-1 ring-border/60 dark:ring-border/40"
-									transition={{ type: "spring", stiffness: 250, damping: 30 }}
-								/>
-							)}
 							<div className="relative z-20 flex items-center gap-1.5">
 								{period.value === "realtime" && (
 									<span className="inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500 dark:bg-emerald-400"></span>

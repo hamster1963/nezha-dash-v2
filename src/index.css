@@ -334,6 +334,53 @@
 	display: none; /* Chrome, Safari 和 Opera */
 }
 
+.tooltip-animate {
+	opacity: 0;
+	filter: blur(5px);
+	animation: tooltip-fade-in 0.1s ease-in-out forwards;
+}
+
+.refresh-toast-animate {
+	animation: refresh-toast-in 0.5s var(--timing) forwards;
+}
+
+.active-indicator-fade-in {
+	animation: active-indicator-fade-in 0.18s var(--timing) forwards;
+}
+
+@keyframes tooltip-fade-in {
+	from {
+		opacity: 0;
+		filter: blur(5px);
+	}
+	to {
+		opacity: 1;
+		filter: blur(0px);
+	}
+}
+
+@keyframes active-indicator-fade-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes refresh-toast-in {
+	from {
+		opacity: 0;
+		filter: blur(10px);
+		transform: translateX(-50%) scale(0.8);
+	}
+	to {
+		opacity: 1;
+		filter: blur(0px);
+		transform: translateX(-50%) scale(1);
+	}
+}
+
 /* Thanks to next.js. */
 [data-issues-count-animation] {
 	display: flex;

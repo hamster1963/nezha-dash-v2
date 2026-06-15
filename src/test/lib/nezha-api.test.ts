@@ -83,7 +83,7 @@ describe("nezha api fetchers", () => {
 	it("refreshes the token when a logged-in browser session has cookies", async () => {
 		Object.defineProperty(document, "cookie", {
 			configurable: true,
-			value: "nezha_token=token",
+			value: "nezha_token=token; nz-csrf=test-csrf-token",
 		});
 		const payload = {
 			success: true,
@@ -102,6 +102,11 @@ describe("nezha api fetchers", () => {
 		await expect(fetchLoginUser()).resolves.toEqual(payload);
 
 		expect(fetch).toHaveBeenNthCalledWith(1, "/api/v1/profile");
-		expect(fetch).toHaveBeenNthCalledWith(2, "/api/v1/refresh-token");
+		expect(fetch).toHaveBeenNthCalledWith(2, "/api/v1/refresh-token", {
+			method: "POST",
+			headers: {
+				"X-CSRF-Token": "test-csrf-token",
+			},
+		});
 	});
 });

@@ -12,6 +12,7 @@ package-lock.json
 dist
 dist-ssr
 dev-dist
+coverage
 *.local
 
 # Editor directories and files

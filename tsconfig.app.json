@@ -14,7 +14,7 @@
 		"moduleDetection": "force",
 		"noEmit": true,
 		"jsx": "react-jsx",
-		"types": ["node"],
+		"types": ["node", "vitest/globals", "@testing-library/jest-dom"],
 		"paths": {
 			"@/*": ["./src/*"]
 		},

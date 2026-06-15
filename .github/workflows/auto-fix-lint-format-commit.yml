@@ -1,11 +1,16 @@
 name: Auto Fix Lint and Format
 
 on:
-  pull_request_target:
+  pull_request:
     types: [opened, synchronize]
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
   auto-fix:
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -13,29 +18,32 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.head_ref }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
 
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
         with:
-          bun-version: "latest"
+          node-version: "22"
+          cache: "pnpm"
 
       - name: Install dependencies
-        run: bun install
+        run: pnpm install --frozen-lockfile
 
       - name: Run linter and fix issues
-        run: bun run lint:fix
+        run: pnpm run lint:fix
 
       - name: Run formatter
-        run: bun run format
+        run: pnpm run format
 
       - name: Check for changes
         id: check_changes
         run: |
-          git diff --exit-code || echo "has_changes=true" >> $GITHUB_ENV
+          git diff --exit-code || echo "has_changes=true" >> "$GITHUB_OUTPUT"
 
       - name: Commit and push changes
-        if: steps.check_changes.outputs.has_changes == 'true' || env.has_changes == 'true'
+        if: steps.check_changes.outputs.has_changes == 'true'
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: "chore: auto-fix linting and formatting issues"
@@ -43,10 +51,10 @@ jobs:
           file_pattern: "."
 
       - name: Add PR comment
-        if: steps.check_changes.outputs.has_changes == 'true' || env.has_changes == 'true'
+        if: steps.check_changes.outputs.has_changes == 'true'
         uses: actions/github-script@v9
         with:
-          github-token: ${{secrets.GITHUB_TOKEN}}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             github.rest.issues.createComment({
               issue_number: context.issue.number,

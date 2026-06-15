@@ -3,14 +3,23 @@
 	"private": true,
 	"version": "2.0.2",
 	"type": "module",
+	"engines": {
+		"node": ">=22",
+		"pnpm": ">=11"
+	},
 	"scripts": {
 		"dev": "vite",
-		"build": "tsc -b && vite build",
+		"typecheck": "tsc -b",
+		"build": "pnpm run typecheck && vite build",
 		"lint": "biome lint",
 		"lint:fix": "biome lint --fix",
 		"format": "biome format --write .",
 		"check": "biome check",
 		"check:fix": "biome check --fix --unsafe",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"test:coverage": "vitest run --coverage",
+		"verify": "pnpm run check && pnpm run test:coverage && pnpm run build",
 		"preview": "vite preview"
 	},
 	"dependencies": {
@@ -56,15 +65,21 @@
 	"devDependencies": {
 		"@biomejs/biome": "2.4.16",
 		"@tailwindcss/postcss": "^4.3.0",
+		"@testing-library/jest-dom": "^6.9.1",
+		"@testing-library/react": "^16.3.2",
+		"@testing-library/user-event": "^14.6.1",
 		"@types/node": "25.9.2",
 		"@types/react": "19.2.17",
 		"@types/react-dom": "19.2.3",
 		"@vitejs/plugin-react": "^6.0.2",
+		"@vitest/coverage-v8": "^4.1.8",
 		"globals": "17.6.0",
+		"jsdom": "^29.1.1",
 		"postcss": "8.5.15",
 		"tailwindcss": "^4.3.0",
 		"typescript": "~6.0.3",
-		"vite": "8.0.16"
+		"vite": "8.0.16",
+		"vitest": "^4.1.8"
 	},
 	"packageManager": "pnpm@11.5.1+sha512.93f7b57422ea7068257235b4c16eb60762eb68e1dc23723199cc739043ea9be2c4143274a399d8c6defa2b1176226d9ca1c4b63482d6200c1a8fbaa78c1d1485"
 }

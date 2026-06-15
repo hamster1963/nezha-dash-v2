@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Navigate, useParams } from "react-router-dom";
 import { NetworkChart } from "@/components/NetworkChart";
 import ServerDetailChart from "@/components/ServerDetailChart";
 import ServerDetailOverview from "@/components/ServerDetailOverview";
@@ -7,8 +7,6 @@ import TabSwitch from "@/components/TabSwitch";
 import { Separator } from "@/components/ui/separator";
 
 export default function ServerDetail() {
-	const navigate = useNavigate();
-
 	useEffect(() => {
 		window.scrollTo({ top: 0, left: 0, behavior: "instant" });
 	}, []);
@@ -19,8 +17,7 @@ export default function ServerDetail() {
 	const { id: server_id } = useParams();
 
 	if (!server_id) {
-		navigate("/404");
-		return null;
+		return <Navigate to="/404" replace />;
 	}
 
 	return (

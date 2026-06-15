@@ -2,7 +2,7 @@ import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import react from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 
 // Get git commit hash
 const getGitHash = () => {
@@ -61,6 +61,39 @@ export default defineConfig({
 		headers: {
 			"Cache-Control": "no-store",
 			Pragma: "no-cache",
+		},
+	},
+	test: {
+		environment: "jsdom",
+		environmentOptions: {
+			jsdom: {
+				url: "https://localhost/",
+			},
+		},
+		globals: true,
+		setupFiles: ["./src/test/setup.ts"],
+		css: true,
+		include: ["src/test/**/*.{test,spec}.{ts,tsx}"],
+		coverage: {
+			provider: "v8",
+			reporter: ["text", "html", "lcov"],
+			reportsDirectory: "./coverage",
+			thresholds: {
+				statements: 86,
+				branches: 74,
+				functions: 86,
+				lines: 86,
+			},
+			include: ["src/**/*.{ts,tsx}"],
+			exclude: [
+				"src/**/*.test.{ts,tsx}",
+				"src/**/*.spec.{ts,tsx}",
+				"src/test/**",
+				"src/types/**",
+				"src/main.tsx",
+				"src/i18n.js",
+				"src/vite-env.d.ts",
+			],
 		},
 	},
 	build: {

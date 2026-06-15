@@ -11,6 +11,22 @@ import type {
 
 let lastestRefreshTokenAt = 0;
 
+const getCookieValue = (name: string): string | undefined => {
+	const cookie = document.cookie
+		.split("; ")
+		.find((item) => item.startsWith(`${name}=`));
+
+	if (!cookie) {
+		return undefined;
+	}
+
+	return decodeURIComponent(cookie.split("=").slice(1).join("="));
+};
+
+const getCsrfToken = (): string => {
+	return getCookieValue("nz-csrf") || "";
+};
+
 export const fetchServerGroup = async (): Promise<ServerGroupResponse> => {
 	const response = await fetch("/api/v1/server-group");
 	const data = await response.json();
@@ -34,7 +50,14 @@ export const fetchLoginUser = async (): Promise<LoginUserResponse> => {
 			Date.now() - lastestRefreshTokenAt > 1000 * 60 * 60)
 	) {
 		lastestRefreshTokenAt = Date.now();
-		fetch("/api/v1/refresh-token");
+		const csrfToken = getCsrfToken();
+		console.log("Refreshing token with CSRF token:", csrfToken);
+		fetch("/api/v1/refresh-token", {
+			method: "POST",
+			headers: {
+				"X-CSRF-Token": csrfToken,
+			},
+		});
 	}
 
 	return data;

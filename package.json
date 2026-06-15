@@ -51,7 +51,7 @@
 		"dayjs": "1.11.21",
 		"i18n-iso-countries": "7.14.0",
 		"i18next": "26.3.1",
-		"lucide-react": "1.17.0",
+		"lucide-react": "1.18.0",
 		"luxon": "3.7.2",
 		"react": "19.2.7",
 		"react-dom": "19.2.7",
@@ -63,23 +63,23 @@
 		"tailwindcss-animate": "^1.0.7"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.4.16",
+		"@biomejs/biome": "2.5.0",
 		"@tailwindcss/postcss": "^4.3.1",
 		"@testing-library/jest-dom": "^6.9.1",
 		"@testing-library/react": "^16.3.2",
 		"@testing-library/user-event": "^14.6.1",
-		"@types/node": "25.9.2",
+		"@types/node": "25.9.3",
 		"@types/react": "19.2.17",
 		"@types/react-dom": "19.2.3",
 		"@vitejs/plugin-react": "^6.0.2",
-		"@vitest/coverage-v8": "^4.1.8",
+		"@vitest/coverage-v8": "^4.1.9",
 		"globals": "17.6.0",
 		"jsdom": "^29.1.1",
 		"postcss": "8.5.15",
 		"tailwindcss": "^4.3.1",
 		"typescript": "~6.0.3",
 		"vite": "8.0.16",
-		"vitest": "^4.1.8"
+		"vitest": "^4.1.9"
 	},
 	"packageManager": "pnpm@11.5.1+sha512.93f7b57422ea7068257235b4c16eb60762eb68e1dc23723199cc739043ea9be2c4143274a399d8c6defa2b1176226d9ca1c4b63482d6200c1a8fbaa78c1d1485"
 }

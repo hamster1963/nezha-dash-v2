@@ -7,7 +7,10 @@ import { createServer } from "@/test/fixtures";
 const dashMocks = vi.hoisted(() => ({
 	closeCommand: vi.fn(),
 	isOpen: true,
-	lastMessage: null as MessageEvent<string> | null,
+	lastData: null as {
+		now: number;
+		servers: ReturnType<typeof createServer>[];
+	} | null,
 	navigate: vi.fn(),
 	setTheme: vi.fn(),
 	toggleCommand: vi.fn(),
@@ -31,7 +34,7 @@ vi.mock("@/hooks/use-theme", () => ({
 vi.mock("@/hooks/use-websocket-context", () => ({
 	useWebSocketContext: () => ({
 		connected: dashMocks.connected,
-		lastMessage: dashMocks.lastMessage,
+		lastData: dashMocks.lastData,
 	}),
 }));
 
@@ -45,24 +48,22 @@ vi.mock("react-router-dom", async (importOriginal) => {
 
 function seedWebSocketData() {
 	dashMocks.connected = true;
-	dashMocks.lastMessage = new MessageEvent("message", {
-		data: JSON.stringify({
-			now: Date.parse("2025-01-01T00:00:00.000Z") / 1000,
-			servers: [
-				createServer({
-					id: 7,
-					name: "edge-7",
-					last_active: "2025-01-01T00:00:00.000Z",
-				}),
-			],
-		}),
-	});
+	dashMocks.lastData = {
+		now: Date.parse("2025-01-01T00:00:20.000Z"),
+		servers: [
+			createServer({
+				id: 7,
+				name: "edge-7",
+				last_active: "2025-01-01T00:00:00.000Z",
+			}),
+		],
+	};
 }
 
 describe("DashCommand", () => {
 	it("does not render until websocket data is available", () => {
 		dashMocks.connected = false;
-		dashMocks.lastMessage = null;
+		dashMocks.lastData = null;
 
 		const { container } = render(<DashCommand />);
 

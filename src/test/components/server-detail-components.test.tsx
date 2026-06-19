@@ -8,7 +8,14 @@ import { createServer } from "@/test/fixtures";
 
 const websocketMocks = vi.hoisted(() => ({
 	connected: true,
-	lastMessage: null as MessageEvent<string> | null,
+	lastData: null as {
+		now: number;
+		servers: ReturnType<typeof createServer>[];
+	} | null,
+}));
+
+vi.mock("@numeric-text/react", () => ({
+	default: ({ value }: { value: string | number }) => <span>{value}</span>,
 }));
 
 vi.mock("@/hooks/use-websocket-context", () => ({
@@ -20,12 +27,10 @@ function seedWebSocketData({
 	now = Date.parse("2025-01-01T00:00:20.000Z"),
 } = {}) {
 	websocketMocks.connected = true;
-	websocketMocks.lastMessage = new MessageEvent("message", {
-		data: JSON.stringify({
-			now,
-			servers: [server],
-		}),
-	});
+	websocketMocks.lastData = {
+		now,
+		servers: [server],
+	};
 }
 
 function LocationProbe() {
@@ -36,7 +41,7 @@ function LocationProbe() {
 describe("ServerDetailSummary", () => {
 	beforeEach(() => {
 		websocketMocks.connected = true;
-		websocketMocks.lastMessage = null;
+		websocketMocks.lastData = null;
 	});
 
 	it("renders nothing until websocket data exists", () => {
@@ -68,7 +73,7 @@ describe("ServerDetailSummary", () => {
 describe("ServerDetailOverview", () => {
 	beforeEach(() => {
 		websocketMocks.connected = true;
-		websocketMocks.lastMessage = null;
+		websocketMocks.lastData = null;
 		Object.assign(window, { ForceUseSvgFlag: true });
 	});
 

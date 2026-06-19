@@ -1,6 +1,6 @@
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-
+import type { NezhaWebsocketResponse } from "@/types/nezha-api";
 import {
 	WebSocketContext,
 	type WebSocketContextType,
@@ -15,8 +15,10 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 	url,
 	children,
 }) => {
-	const [lastMessage, setLastMessage] = useState<{ data: string } | null>(null);
-	const [messageHistory, setMessageHistory] = useState<{ data: string }[]>([]); // 新增历史消息状态
+	const [lastData, setLastData] = useState<NezhaWebsocketResponse | null>(null);
+	const [messageHistory, setMessageHistory] = useState<
+		NezhaWebsocketResponse[]
+	>([]);
 	const [connected, setConnected] = useState(false);
 	const [needReconnect, setNeedReconnect] = useState(false);
 	const ws = useRef<WebSocket | null>(null);
@@ -85,13 +87,21 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 			};
 
 			ws.current.onmessage = (event) => {
-				const newMessage = { data: event.data };
-				setLastMessage(newMessage);
-				// 更新历史消息，保持最新的30条记录
-				setMessageHistory((prev) => {
-					const updated = [newMessage, ...prev];
-					return updated.slice(0, 30);
-				});
+				try {
+					if (typeof event.data !== "string") {
+						throw new Error("WebSocket message data must be a string");
+					}
+
+					const newData = JSON.parse(event.data) as NezhaWebsocketResponse;
+					setLastData(newData);
+					// 更新历史消息，保持最新的30条记录
+					setMessageHistory((prev) => {
+						const updated = [newData, ...prev];
+						return updated.slice(0, 30);
+					});
+				} catch (error) {
+					console.error("Failed to parse WebSocket message:", error);
+				}
 			};
 
 			ws.current.onerror = (error) => {
@@ -130,7 +140,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 	}, [cleanup, connect]);
 
 	const contextValue: WebSocketContextType = {
-		lastMessage,
+		lastData,
 		connected,
 		messageHistory,
 		reconnect,

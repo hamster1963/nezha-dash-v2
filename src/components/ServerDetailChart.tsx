@@ -211,7 +211,7 @@ export default function ServerDetailChart({
 }: {
 	server_id: string;
 }) {
-	const { lastMessage, connected, messageHistory } = useWebSocketContext();
+	const { lastData, connected, messageHistory } = useWebSocketContext();
 	const [selectedPeriod, setSelectedPeriod] = useState<ChartPeriod>("realtime");
 
 	// Check if user is logged in
@@ -256,13 +256,11 @@ export default function ServerDetailChart({
 		}
 	}, [isLogin, isTsdbEnabled, selectedPeriod]);
 
-	if (!connected && !lastMessage) {
+	if (!connected && !lastData) {
 		return <ServerDetailChartLoading />;
 	}
 
-	const nezhaWsData = lastMessage
-		? (JSON.parse(lastMessage.data) as NezhaWebsocketResponse)
-		: null;
+	const nezhaWsData = lastData;
 
 	if (!nezhaWsData) {
 		return <ServerDetailChartLoading />;
@@ -436,7 +434,7 @@ function GpuChart({
 	index: number;
 	gpuStat: number;
 	gpuName?: string;
-	messageHistory: { data: string }[];
+	messageHistory: NezhaWebsocketResponse[];
 	period: ChartPeriod;
 }) {
 	const [gpuChartData, setGpuChartData] = useState<gpuChartData[]>([]);
@@ -467,8 +465,7 @@ function GpuChart({
 			messageHistory.length > 0
 		) {
 			const historyData = messageHistory
-				.map((msg) => {
-					const wsData = JSON.parse(msg.data) as NezhaWebsocketResponse;
+				.map((wsData) => {
 					const server = wsData.servers.find((s) => s.id === id);
 					if (!server) return null;
 					const { gpu } = formatNezhaInfo(wsData.now, server);
@@ -630,7 +627,7 @@ function CpuChart({
 }: {
 	now: number;
 	data: NezhaServer;
-	messageHistory: { data: string }[];
+	messageHistory: NezhaWebsocketResponse[];
 	period: ChartPeriod;
 }) {
 	const [cpuChartData, setCpuChartData] = useState<cpuChartData[]>([]);
@@ -663,8 +660,7 @@ function CpuChart({
 			messageHistory.length > 0
 		) {
 			const historyData = messageHistory
-				.map((msg) => {
-					const wsData = JSON.parse(msg.data) as NezhaWebsocketResponse;
+				.map((wsData) => {
 					const server = wsData.servers.find((s) => s.id === data.id);
 					if (!server) return null;
 					const { cpu } = formatNezhaInfo(wsData.now, server);
@@ -824,7 +820,7 @@ function ProcessChart({
 }: {
 	now: number;
 	data: NezhaServer;
-	messageHistory: { data: string }[];
+	messageHistory: NezhaWebsocketResponse[];
 	period: ChartPeriod;
 }) {
 	const { t } = useTranslation();
@@ -865,8 +861,7 @@ function ProcessChart({
 			messageHistory.length > 0
 		) {
 			const historyData = messageHistory
-				.map((msg) => {
-					const wsData = JSON.parse(msg.data) as NezhaWebsocketResponse;
+				.map((wsData) => {
 					const server = wsData.servers.find((s) => s.id === data.id);
 					if (!server) return null;
 					const { process } = formatNezhaInfo(wsData.now, server);
@@ -1020,7 +1015,7 @@ function MemChart({
 }: {
 	now: number;
 	data: NezhaServer;
-	messageHistory: { data: string }[];
+	messageHistory: NezhaWebsocketResponse[];
 	period: ChartPeriod;
 }) {
 	const { t } = useTranslation();
@@ -1121,8 +1116,7 @@ function MemChart({
 			messageHistory.length > 0
 		) {
 			const historyData = messageHistory
-				.map((msg) => {
-					const wsData = JSON.parse(msg.data) as NezhaWebsocketResponse;
+				.map((wsData) => {
 					const server = wsData.servers.find((s) => s.id === data.id);
 					if (!server) return null;
 					const { mem, swap } = formatNezhaInfo(wsData.now, server);
@@ -1339,7 +1333,7 @@ function DiskChart({
 }: {
 	now: number;
 	data: NezhaServer;
-	messageHistory: { data: string }[];
+	messageHistory: NezhaWebsocketResponse[];
 	period: ChartPeriod;
 }) {
 	const { t } = useTranslation();
@@ -1383,8 +1377,7 @@ function DiskChart({
 			messageHistory.length > 0
 		) {
 			const historyData = messageHistory
-				.map((msg) => {
-					const wsData = JSON.parse(msg.data) as NezhaWebsocketResponse;
+				.map((wsData) => {
 					const server = wsData.servers.find((s) => s.id === data.id);
 					if (!server) return null;
 					const { disk } = formatNezhaInfo(wsData.now, server);
@@ -1553,7 +1546,7 @@ function NetworkChart({
 }: {
 	now: number;
 	data: NezhaServer;
-	messageHistory: { data: string }[];
+	messageHistory: NezhaWebsocketResponse[];
 	period: ChartPeriod;
 }) {
 	const { t } = useTranslation();
@@ -1645,8 +1638,7 @@ function NetworkChart({
 			messageHistory.length > 0
 		) {
 			const historyData = messageHistory
-				.map((msg) => {
-					const wsData = JSON.parse(msg.data) as NezhaWebsocketResponse;
+				.map((wsData) => {
 					const server = wsData.servers.find((s) => s.id === data.id);
 					if (!server) return null;
 					const { up, down } = formatNezhaInfo(wsData.now, server);
@@ -1861,7 +1853,7 @@ function ConnectChart({
 }: {
 	now: number;
 	data: NezhaServer;
-	messageHistory: { data: string }[];
+	messageHistory: NezhaWebsocketResponse[];
 	period: ChartPeriod;
 }) {
 	const [connectChartData, setConnectChartData] = useState(
@@ -1951,8 +1943,7 @@ function ConnectChart({
 			messageHistory.length > 0
 		) {
 			const historyData = messageHistory
-				.map((msg) => {
-					const wsData = JSON.parse(msg.data) as NezhaWebsocketResponse;
+				.map((wsData) => {
 					const server = wsData.servers.find((s) => s.id === data.id);
 					if (!server) return null;
 					const { tcp, udp } = formatNezhaInfo(wsData.now, server);

@@ -109,10 +109,13 @@ describe("ServerDetail", () => {
 
 		expect(screen.getByTestId("detail-overview")).toHaveTextContent("7");
 		expect(screen.getByTestId("detail-chart")).toHaveTextContent("7");
-		expect(screen.getByTestId("network-chart")).toHaveTextContent("7:false");
+		expect(screen.queryByTestId("network-chart")).not.toBeInTheDocument();
 
 		await user.click(screen.getByRole("button", { name: "Network" }));
-		expect(screen.getByTestId("network-chart")).toHaveTextContent("7:true");
+		expect(await screen.findByTestId("network-chart")).toHaveTextContent(
+			"7:true",
+		);
+		expect(screen.queryByTestId("detail-chart")).not.toBeInTheDocument();
 	});
 
 	it("redirects when route params are missing", async () => {

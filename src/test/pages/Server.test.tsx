@@ -94,7 +94,7 @@ function renderServerPage(
 	{ withStatusControl = false } = {},
 ) {
 	const defaultWebsocketValue: WebSocketContextType = {
-		lastMessage: null,
+		lastData: null,
 		connected: false,
 		messageHistory: [],
 		reconnect: vi.fn(),
@@ -118,10 +118,8 @@ function renderServerPage(
 
 function websocketPayload(servers: NezhaServer[]) {
 	return {
-		data: JSON.stringify({
-			now: Date.parse("2025-01-01T00:00:20.000Z"),
-			servers,
-		}),
+		now: Date.parse("2025-01-01T00:00:20.000Z"),
+		servers,
 	};
 }
 
@@ -153,7 +151,7 @@ describe("Servers page", () => {
 	it("renders websocket loading and processing states", () => {
 		const { rerender } = renderServerPage({
 			connected: false,
-			lastMessage: null,
+			lastData: null,
 		});
 
 		expect(screen.getByText("info.websocketConnecting")).toBeInTheDocument();
@@ -163,7 +161,7 @@ describe("Servers page", () => {
 				<StatusProvider>
 					<WebSocketContext.Provider
 						value={{
-							lastMessage: null,
+							lastData: null,
 							connected: true,
 							messageHistory: [],
 							reconnect: vi.fn(),
@@ -190,7 +188,7 @@ describe("Servers page", () => {
 
 		renderServerPage({
 			connected: true,
-			lastMessage: websocketPayload([online, offline]),
+			lastData: websocketPayload([online, offline]),
 		});
 
 		expect(screen.getByTestId("server-overview")).toHaveTextContent("2:1:1");
@@ -215,7 +213,7 @@ describe("Servers page", () => {
 
 		renderServerPage({
 			connected: true,
-			lastMessage: websocketPayload([online, offline]),
+			lastData: websocketPayload([online, offline]),
 		});
 
 		await user.click(await screen.findByTestId("group-Edge"));
@@ -240,7 +238,7 @@ describe("Servers page", () => {
 
 		renderServerPage({
 			connected: true,
-			lastMessage: websocketPayload([lowCpu, highCpu]),
+			lastData: websocketPayload([lowCpu, highCpu]),
 		});
 
 		await user.selectOptions(screen.getByLabelText("Sort metric"), "cpu");
@@ -264,7 +262,7 @@ describe("Servers page", () => {
 
 		renderServerPage({
 			connected: true,
-			lastMessage: websocketPayload([onlineAlpha, offlineZeta]),
+			lastData: websocketPayload([onlineAlpha, offlineZeta]),
 		});
 
 		expect(screen.getByLabelText("Toggle sort direction")).toBeDisabled();
@@ -306,7 +304,7 @@ describe("Servers page", () => {
 
 		const { container } = renderServerPage({
 			connected: true,
-			lastMessage: websocketPayload([online, offline]),
+			lastData: websocketPayload([online, offline]),
 		});
 
 		await waitFor(() => {
@@ -340,7 +338,7 @@ describe("Servers page", () => {
 
 		renderServerPage({
 			connected: true,
-			lastMessage: websocketPayload([online]),
+			lastData: websocketPayload([online]),
 		});
 
 		expect(screen.getByTestId("server-card")).toHaveTextContent("alpha");
@@ -364,7 +362,7 @@ describe("Servers page", () => {
 		renderServerPage(
 			{
 				connected: true,
-				lastMessage: websocketPayload([online, offline]),
+				lastData: websocketPayload([online, offline]),
 			},
 			{ withStatusControl: true },
 		);

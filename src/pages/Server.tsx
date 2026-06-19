@@ -22,7 +22,7 @@ import { useStatus } from "@/hooks/use-status";
 import { useWebSocketContext } from "@/hooks/use-websocket-context";
 import { fetchServerGroup, fetchService } from "@/lib/nezha-api";
 import { cn, formatNezhaInfo } from "@/lib/utils";
-import type { NezhaWebsocketResponse, ServerGroup } from "@/types/nezha-api";
+import type { ServerGroup } from "@/types/nezha-api";
 
 export default function Servers() {
 	const { t } = useTranslation();
@@ -41,7 +41,7 @@ export default function Servers() {
 	const hasServices =
 		!!serviceData?.data?.services &&
 		Object.keys(serviceData.data.services).length > 0;
-	const { lastMessage, connected } = useWebSocketContext();
+	const { lastData, connected } = useWebSocketContext();
 	const { status } = useStatus();
 	const [showServices, setShowServices] = useState<string>("0");
 	const [showMap, setShowMap] = useState<string>("0");
@@ -124,9 +124,7 @@ export default function Servers() {
 		restoreScrollPosition();
 	}, [restoreScrollPosition]);
 
-	const nezhaWsData = lastMessage
-		? (JSON.parse(lastMessage.data) as NezhaWebsocketResponse)
-		: null;
+	const nezhaWsData = lastData;
 
 	const groupTabs = [
 		"All",
@@ -142,7 +140,7 @@ export default function Servers() {
 			?.map((item: ServerGroup) => item.group.name) || []),
 	];
 
-	if (!connected && !lastMessage) {
+	if (!connected && !lastData) {
 		return (
 			<div className="flex flex-col items-center min-h-96 justify-center ">
 				<div className="font-semibold flex items-center gap-2 text-sm">

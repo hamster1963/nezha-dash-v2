@@ -6,15 +6,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import ServerDetailChart from "@/components/ServerDetailChart";
 import { createServer, createSettingResponse } from "@/test/fixtures";
 import { createTestQueryClient } from "@/test/utils";
-import type { NezhaServer } from "@/types/nezha-api";
+import type { NezhaServer, NezhaWebsocketResponse } from "@/types/nezha-api";
 
 const detailChartMocks = vi.hoisted(() => ({
 	connected: true,
 	fetchLoginUser: vi.fn(),
 	fetchServerMetrics: vi.fn(),
 	fetchSetting: vi.fn(),
-	lastMessage: null as { data: string } | null,
-	messageHistory: [] as { data: string }[],
+	lastData: null as NezhaWebsocketResponse | null,
+	messageHistory: [] as NezhaWebsocketResponse[],
 }));
 
 vi.mock("recharts", () => {
@@ -70,7 +70,7 @@ vi.mock("recharts", () => {
 vi.mock("@/hooks/use-websocket-context", () => ({
 	useWebSocketContext: () => ({
 		connected: detailChartMocks.connected,
-		lastMessage: detailChartMocks.lastMessage,
+		lastData: detailChartMocks.lastData,
 		messageHistory: detailChartMocks.messageHistory,
 	}),
 }));
@@ -122,10 +122,8 @@ function metricsResponse(metric: string) {
 
 function websocketPayload(server: NezhaServer, now: number) {
 	return {
-		data: JSON.stringify({
-			now,
-			servers: [server],
-		}),
+		now,
+		servers: [server],
 	};
 }
 
@@ -160,7 +158,7 @@ function seedWebSocketData() {
 	});
 
 	detailChartMocks.connected = true;
-	detailChartMocks.lastMessage = websocketPayload(server, baseNow);
+	detailChartMocks.lastData = websocketPayload(server, baseNow);
 	detailChartMocks.messageHistory = [0, 1, 2].map((index) =>
 		websocketPayload(
 			createServer({
@@ -192,7 +190,7 @@ describe("ServerDetailChart", () => {
 		detailChartMocks.fetchLoginUser.mockReset();
 		detailChartMocks.fetchServerMetrics.mockReset();
 		detailChartMocks.fetchSetting.mockReset();
-		detailChartMocks.lastMessage = null;
+		detailChartMocks.lastData = null;
 		detailChartMocks.messageHistory = [];
 		detailChartMocks.fetchLoginUser.mockRejectedValue(new Error("anonymous"));
 		detailChartMocks.fetchSetting.mockResolvedValue(settingResponse());

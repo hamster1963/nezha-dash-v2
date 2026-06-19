@@ -3,22 +3,19 @@
 import { Progress } from "@/components/ui/progress";
 import { useWebSocketContext } from "@/hooks/use-websocket-context";
 import { formatNezhaInfo } from "@/lib/utils";
-import type { NezhaWebsocketResponse } from "@/types/nezha-api";
 
 export default function ServerDetailSummary({
 	server_id,
 }: {
 	server_id: number;
 }) {
-	const { lastMessage, connected } = useWebSocketContext();
+	const { lastData, connected } = useWebSocketContext();
 
-	if (!connected && !lastMessage) {
+	if (!connected && !lastData) {
 		return null;
 	}
 
-	const nezhaWsData = lastMessage
-		? (JSON.parse(lastMessage.data) as NezhaWebsocketResponse)
-		: null;
+	const nezhaWsData = lastData;
 
 	if (!nezhaWsData) {
 		return null;

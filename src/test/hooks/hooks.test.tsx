@@ -83,8 +83,8 @@ describe("useBackground", () => {
 describe("useChartHistory", () => {
 	it("formats websocket message history once and keeps newest data last", () => {
 		const history = [
-			{ data: JSON.stringify({ now: 2, servers: [{ id: 1 }] }) },
-			{ data: JSON.stringify({ now: 1, servers: [{ id: 1 }] }) },
+			{ now: 2, servers: [] },
+			{ now: 1, servers: [] },
 		];
 		const formatFn = vi.fn((wsData: { now: number }, serverId: number) =>
 			serverId === 1 ? wsData.now : null,
@@ -98,7 +98,7 @@ describe("useChartHistory", () => {
 		expect(result.current).toEqual([1, 2]);
 		expect(formatFn).toHaveBeenCalledTimes(2);
 
-		rerender({ messages: [...history, { data: JSON.stringify({ now: 3 }) }] });
+		rerender({ messages: [...history, { now: 3, servers: [] }] });
 		expect(result.current).toEqual([1, 2]);
 	});
 });

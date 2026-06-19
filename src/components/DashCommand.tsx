@@ -17,7 +17,6 @@ import { useCommand } from "@/hooks/use-command";
 import { useTheme } from "@/hooks/use-theme";
 import { useWebSocketContext } from "@/hooks/use-websocket-context";
 import { formatNezhaInfo } from "@/lib/utils";
-import type { NezhaWebsocketResponse } from "@/types/nezha-api";
 
 export function DashCommand() {
 	const { isOpen, closeCommand, toggleCommand } = useCommand();
@@ -26,11 +25,9 @@ export function DashCommand() {
 	const { t } = useTranslation();
 	const { setTheme } = useTheme();
 
-	const { lastMessage, connected } = useWebSocketContext();
+	const { lastData, connected } = useWebSocketContext();
 
-	const nezhaWsData = lastMessage
-		? (JSON.parse(lastMessage.data) as NezhaWebsocketResponse)
-		: null;
+	const nezhaWsData = lastData;
 
 	useEffect(() => {
 		const down = (e: KeyboardEvent) => {

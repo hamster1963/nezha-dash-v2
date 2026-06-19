@@ -12,6 +12,7 @@ import { useSort } from "@/hooks/use-sort";
 import { useStatus } from "@/hooks/use-status";
 import { useTooltip } from "@/hooks/use-tooltip";
 import { useWebSocketContext } from "@/hooks/use-websocket-context";
+import { createServer } from "@/test/fixtures";
 
 class FakeWebSocket {
 	static readonly CONNECTING = 0;
@@ -121,7 +122,7 @@ function TooltipProbe() {
 function WebSocketProbe() {
 	const {
 		connected,
-		lastMessage,
+		lastData,
 		messageHistory,
 		needReconnect,
 		setNeedReconnect,
@@ -130,7 +131,7 @@ function WebSocketProbe() {
 	return (
 		<div>
 			<p>{connected ? "connected" : "disconnected"}</p>
-			<p>{lastMessage?.data ?? "none"}</p>
+			<p>{lastData?.servers[0]?.name ?? "none"}</p>
 			<p>{messageHistory.length}</p>
 			<p>{needReconnect ? "needs-reconnect" : "stable"}</p>
 			<button type="button" onClick={() => setNeedReconnect(true)}>
@@ -243,6 +244,13 @@ describe("WebSocketProvider", () => {
 		);
 	}
 
+	function websocketPayload(serverName: string) {
+		return JSON.stringify({
+			now: Date.parse("2025-01-01T00:00:20.000Z"),
+			servers: [createServer({ name: serverName })],
+		});
+	}
+
 	it("connects with a ws URL and records incoming messages", () => {
 		renderWebSocketProvider(<WebSocketProbe />);
 
@@ -255,8 +263,8 @@ describe("WebSocketProvider", () => {
 		expect(screen.getByText("connected")).toBeInTheDocument();
 
 		act(() => {
-			socket.message("first");
-			socket.message("second");
+			socket.message(websocketPayload("first"));
+			socket.message(websocketPayload("second"));
 		});
 
 		expect(screen.getByText("second")).toBeInTheDocument();
@@ -270,12 +278,33 @@ describe("WebSocketProvider", () => {
 		act(() => {
 			socket.open();
 			for (let index = 0; index < 31; index += 1) {
-				socket.message(`message-${index}`);
+				socket.message(websocketPayload(`message-${index}`));
 			}
 		});
 
 		expect(screen.getByText("message-30")).toBeInTheDocument();
 		expect(screen.getByText("30")).toBeInTheDocument();
+	});
+
+	it("ignores malformed websocket messages without disconnecting", () => {
+		const consoleError = vi
+			.spyOn(console, "error")
+			.mockImplementation(() => undefined);
+		renderWebSocketProvider(<WebSocketProbe />);
+		const socket = FakeWebSocket.instances[0];
+
+		act(() => {
+			socket.open();
+			socket.message("not-json");
+		});
+
+		expect(screen.getByText("connected")).toBeInTheDocument();
+		expect(screen.getByText("none")).toBeInTheDocument();
+		expect(screen.getByText("0")).toBeInTheDocument();
+		expect(consoleError).toHaveBeenCalledWith(
+			"Failed to parse WebSocket message:",
+			expect.any(SyntaxError),
+		);
 	});
 
 	it("exposes manual reconnect state separately from socket state", async () => {

@@ -60,13 +60,9 @@ function Header() {
 		refetchOnWindowFocus: true,
 	});
 
-	const { lastMessage, connected } = useWebSocketContext();
+	const { lastData, connected } = useWebSocketContext();
 
-	const onlineCount = connected
-		? lastMessage
-			? JSON.parse(lastMessage.data).online || 0
-			: 0
-		: "...";
+	const onlineCount = connected ? (lastData ? lastData.online || 0 : 0) : "...";
 
 	const siteName = settingData?.data?.config?.site_name;
 

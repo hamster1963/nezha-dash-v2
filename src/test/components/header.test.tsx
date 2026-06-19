@@ -15,7 +15,7 @@ const headerMocks = vi.hoisted(() => ({
 	connected: true,
 	fetchLoginUser: vi.fn(),
 	fetchSetting: vi.fn(),
-	lastMessage: null as MessageEvent<string> | null,
+	lastData: null as { now: number; online?: number; servers: [] } | null,
 	needReconnect: false,
 	setNeedReconnect: vi.fn(),
 	updateBackground: vi.fn(),
@@ -37,7 +37,7 @@ vi.mock("@/hooks/use-background", () => ({
 vi.mock("@/hooks/use-websocket-context", () => ({
 	useWebSocketContext: () => ({
 		connected: headerMocks.connected,
-		lastMessage: headerMocks.lastMessage,
+		lastData: headerMocks.lastData,
 		needReconnect: headerMocks.needReconnect,
 		setNeedReconnect: headerMocks.setNeedReconnect,
 	}),
@@ -104,9 +104,11 @@ describe("Header", () => {
 		headerMocks.connected = true;
 		headerMocks.fetchLoginUser.mockReset();
 		headerMocks.fetchSetting.mockReset();
-		headerMocks.lastMessage = new MessageEvent("message", {
-			data: JSON.stringify({ online: 4 }),
-		});
+		headerMocks.lastData = {
+			now: Date.parse("2025-01-01T00:00:20.000Z"),
+			online: 4,
+			servers: [],
+		};
 		headerMocks.needReconnect = false;
 		headerMocks.setNeedReconnect.mockReset();
 		headerMocks.updateBackground.mockReset();

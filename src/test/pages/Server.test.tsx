@@ -295,9 +295,10 @@ describe("Servers page", () => {
 
 		await user.selectOptions(screen.getByLabelText("Sort metric"), "system");
 
-		expect(screen.getAllByTestId("server-card")).toHaveLength(2);
-		expect(screen.getByText("alpha")).toBeInTheDocument();
-		expect(screen.getByText("beta")).toBeInTheDocument();
+		const cards = screen.getAllByTestId("server-card");
+		expect(cards).toHaveLength(2);
+		expect(cards[0]).toHaveTextContent("beta");
+		expect(cards[1]).toHaveTextContent("alpha");
 	});
 
 	it("restores the saved main page scroll position after data is ready", async () => {
@@ -307,6 +308,7 @@ describe("Servers page", () => {
 			callback(0);
 			return 0;
 		});
+		sessionStorage.setItem("fromMainPage", "true");
 		sessionStorage.setItem("scrollPosition", "345");
 
 		renderServerPage({
@@ -321,6 +323,23 @@ describe("Servers page", () => {
 				behavior: "auto",
 			});
 		});
+	});
+
+	it("does not restore stale scroll positions without a main page origin", () => {
+		const scrollTo = vi.fn();
+		vi.stubGlobal("scrollTo", scrollTo);
+		vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+			callback(0);
+			return 0;
+		});
+		sessionStorage.setItem("scrollPosition", "345");
+
+		renderServerPage({
+			connected: true,
+			lastData: websocketPayload([createServer({ id: 1, name: "alpha" })]),
+		});
+
+		expect(scrollTo).not.toHaveBeenCalled();
 	});
 
 	it("toggles map and service tracker controls when service data exists", async () => {

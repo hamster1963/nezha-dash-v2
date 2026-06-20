@@ -56,10 +56,15 @@ export default function Servers() {
 			: undefined;
 
 	const restoreScrollPosition = useCallback(() => {
+		const isFromMainPage = sessionStorage.getItem("fromMainPage") === "true";
 		const savedPosition = sessionStorage.getItem("scrollPosition");
 		const scrollTop = savedPosition ? Number(savedPosition) : Number.NaN;
 
-		if (hasRestoredScroll.current || !Number.isFinite(scrollTop)) {
+		if (
+			hasRestoredScroll.current ||
+			!isFromMainPage ||
+			!Number.isFinite(scrollTop)
+		) {
 			return;
 		}
 

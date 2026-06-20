@@ -72,9 +72,14 @@ describe("ServerCard", () => {
 			screen.getAllByText(/billingInfo.remaining: 16/).length,
 		).toBeGreaterThan(0);
 
+		Object.defineProperty(window, "scrollY", {
+			configurable: true,
+			value: 432,
+		});
 		fireEvent.click(screen.getByText("edge-online"));
 
 		expect(sessionStorage.getItem("fromMainPage")).toBe("true");
+		expect(sessionStorage.getItem("scrollPosition")).toBe("432");
 		expect(screen.getByText("/server/7")).toBeInTheDocument();
 	});
 

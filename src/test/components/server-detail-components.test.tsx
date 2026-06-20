@@ -99,6 +99,7 @@ describe("ServerDetailOverview", () => {
 
 	it("renders server identity, hardware, traffic, and temperature details", async () => {
 		const user = userEvent.setup();
+		sessionStorage.setItem("fromMainPage", "true");
 		seedWebSocketData({
 			server: createServer({
 				id: 7,
@@ -113,8 +114,8 @@ describe("ServerDetailOverview", () => {
 			}),
 		});
 
-		render(
-			<MemoryRouter initialEntries={["/server/7"]}>
+		const { unmount } = render(
+			<MemoryRouter initialEntries={["/", "/server/7"]} initialIndex={1}>
 				<ServerDetailOverview server_id="7" />
 				<LocationProbe />
 			</MemoryRouter>,
@@ -139,5 +140,8 @@ describe("ServerDetailOverview", () => {
 
 		await user.click(screen.getByText("edge-detail"));
 		expect(screen.getByText("/")).toBeInTheDocument();
+
+		unmount();
+		expect(sessionStorage.getItem("fromMainPage")).toBeNull();
 	});
 });

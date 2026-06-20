@@ -2,6 +2,7 @@ import { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import useTooltip from "@/hooks/use-tooltip";
+import { saveMainPageScrollPosition } from "@/lib/navigation";
 
 const MapTooltip = memo(function MapTooltip() {
 	const { t } = useTranslation();
@@ -46,7 +47,7 @@ const MapTooltip = memo(function MapTooltip() {
 						type="button"
 						className="flex items-center gap-1.5 py-0.5 text-neutral-500 transition-colors hover:text-black dark:text-neutral-400 dark:hover:text-white"
 						onClick={() => {
-							sessionStorage.setItem("fromMainPage", "true");
+							saveMainPageScrollPosition();
 							navigate(`/server/${server.id}`);
 						}}
 					>

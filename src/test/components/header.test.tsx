@@ -179,6 +179,19 @@ describe("Header", () => {
 		).toBeInTheDocument();
 	});
 
+	it("ignores invalid custom links instead of crashing", async () => {
+		Object.assign(window, {
+			CustomLinks: "{bad-json",
+		});
+
+		renderHeader();
+
+		expect(await screen.findByText("Nezha")).toBeInTheDocument();
+		expect(
+			screen.queryByRole("link", { name: "Docs" }),
+		).not.toBeInTheDocument();
+	});
+
 	it("stores and removes the active custom background", async () => {
 		const user = userEvent.setup();
 		headerMocks.backgroundImage = "/desktop.png";

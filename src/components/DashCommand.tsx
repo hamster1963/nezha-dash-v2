@@ -16,6 +16,7 @@ import {
 import { useCommand } from "@/hooks/use-command";
 import { useTheme } from "@/hooks/use-theme";
 import { useWebSocketContext } from "@/hooks/use-websocket-context";
+import { saveMainPageScrollPosition } from "@/lib/navigation";
 import { formatNezhaInfo } from "@/lib/utils";
 
 export function DashCommand() {
@@ -89,6 +90,7 @@ export function DashCommand() {
 								key={server.id}
 								value={server.name}
 								onSelect={() => {
+									saveMainPageScrollPosition();
 									navigate(`/server/${server.id}`);
 									closeCommand();
 								}}

@@ -93,6 +93,31 @@ describe("ServiceTracker", () => {
 		expect(screen.getByText("Monthly")).toBeInTheDocument();
 		expect(screen.queryByText("hidden-server")).not.toBeInTheDocument();
 	});
+
+	it("falls back to zero uptime when a service has no checks", async () => {
+		apiMocks.fetchService.mockResolvedValue({
+			success: true,
+			data: {
+				services: {
+					http: {
+						service_name: "HTTP Ping",
+						current_up: 0,
+						current_down: 0,
+						total_up: 0,
+						total_down: 0,
+						delay: [],
+						up: [0, 0],
+						down: [0, 0],
+					},
+				},
+			},
+		});
+
+		renderWithQuery(<ServiceTracker serverList={[createServer()]} />);
+
+		expect(await screen.findByText("HTTP Ping")).toBeInTheDocument();
+		expect(screen.getByText("0.0% serviceTracker.uptime")).toBeInTheDocument();
+	});
 });
 
 describe("CycleTransferStatsCard", () => {

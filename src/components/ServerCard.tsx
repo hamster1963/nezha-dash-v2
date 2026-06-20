@@ -8,6 +8,7 @@ import {
 	GetOsName,
 	MageMicrosoftWindows,
 } from "@/lib/logo-class";
+import { saveMainPageScrollPosition } from "@/lib/navigation";
 import { cn, formatNezhaInfo, parsePublicNote } from "@/lib/utils";
 import type { NezhaServer } from "@/types/nezha-api";
 import BillingInfo from "./billingInfo";
@@ -40,7 +41,7 @@ export default function ServerCard({
 	} = formatNezhaInfo(now, serverInfo);
 
 	const cardClick = () => {
-		sessionStorage.setItem("fromMainPage", "true");
+		saveMainPageScrollPosition();
 		navigate(`/server/${serverInfo.id}`);
 	};
 

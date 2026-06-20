@@ -275,6 +275,73 @@ describe("Servers page", () => {
 		expect(screen.getAllByTestId("server-card")[0]).toHaveTextContent("alpha");
 	});
 
+	it("sorts by system even when a platform value is missing", async () => {
+		const missingPlatform = createServer({
+			id: 1,
+			name: "alpha",
+			host: { platform: undefined },
+		});
+		const linux = createServer({
+			id: 2,
+			name: "beta",
+			host: { platform: "linux" },
+		});
+		const user = userEvent.setup();
+
+		renderServerPage({
+			connected: true,
+			lastData: websocketPayload([missingPlatform, linux]),
+		});
+
+		await user.selectOptions(screen.getByLabelText("Sort metric"), "system");
+
+		const cards = screen.getAllByTestId("server-card");
+		expect(cards).toHaveLength(2);
+		expect(cards[0]).toHaveTextContent("beta");
+		expect(cards[1]).toHaveTextContent("alpha");
+	});
+
+	it("restores the saved main page scroll position after data is ready", async () => {
+		const scrollTo = vi.fn();
+		vi.stubGlobal("scrollTo", scrollTo);
+		vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+			callback(0);
+			return 0;
+		});
+		sessionStorage.setItem("fromMainPage", "true");
+		sessionStorage.setItem("scrollPosition", "345");
+
+		renderServerPage({
+			connected: true,
+			lastData: websocketPayload([createServer({ id: 1, name: "alpha" })]),
+		});
+
+		await waitFor(() => {
+			expect(scrollTo).toHaveBeenCalledWith({
+				top: 345,
+				left: 0,
+				behavior: "auto",
+			});
+		});
+	});
+
+	it("does not restore stale scroll positions without a main page origin", () => {
+		const scrollTo = vi.fn();
+		vi.stubGlobal("scrollTo", scrollTo);
+		vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+			callback(0);
+			return 0;
+		});
+		sessionStorage.setItem("scrollPosition", "345");
+
+		renderServerPage({
+			connected: true,
+			lastData: websocketPayload([createServer({ id: 1, name: "alpha" })]),
+		});
+
+		expect(scrollTo).not.toHaveBeenCalled();
+	});
+
 	it("toggles map and service tracker controls when service data exists", async () => {
 		apiMocks.fetchService.mockResolvedValue({
 			success: true,

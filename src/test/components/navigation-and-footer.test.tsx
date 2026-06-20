@@ -104,6 +104,7 @@ describe("Tab and group switches", () => {
 	it("scrolls overflowing group tabs and applies custom background styling", async () => {
 		const user = userEvent.setup();
 		const setCurrentTab = vi.fn();
+		const scrollIntoView = vi.spyOn(HTMLElement.prototype, "scrollIntoView");
 		vi.spyOn(HTMLElement.prototype, "scrollWidth", "get").mockReturnValue(320);
 		vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(120);
 		window.CustomBackgroundImage = "/background.jpg";
@@ -125,6 +126,7 @@ describe("Tab and group switches", () => {
 
 		expect(scrollContainer.scrollLeft).toBe(42);
 		expect(setCurrentTab).toHaveBeenCalledWith("Asia");
+		expect(scrollIntoView).not.toHaveBeenCalled();
 		expect(
 			container.querySelector(".relative.flex.items-center")?.className,
 		).toContain("bg-stone-100/70");

@@ -59,13 +59,22 @@ export default function GroupSwitch({
 
 	useEffect(() => {
 		const currentTagRef = itemRefs.current[tabs.indexOf(currentTab)];
+		const scrollContainer = scrollRef.current;
 
-		if (currentTagRef) {
-			currentTagRef.scrollIntoView({
-				behavior: "smooth",
-				block: "nearest",
-				inline: "center",
-			});
+		if (currentTagRef && scrollContainer) {
+			const nextScrollLeft =
+				currentTagRef.offsetLeft -
+				scrollContainer.clientWidth / 2 +
+				currentTagRef.offsetWidth / 2;
+
+			if (typeof scrollContainer.scrollTo === "function") {
+				scrollContainer.scrollTo({
+					behavior: "smooth",
+					left: Math.max(0, nextScrollLeft),
+				});
+			} else {
+				scrollContainer.scrollLeft = Math.max(0, nextScrollLeft);
+			}
 		}
 	}, [currentTab, itemRefs, tabs]);
 

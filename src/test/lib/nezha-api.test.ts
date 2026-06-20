@@ -81,6 +81,9 @@ describe("nezha api fetchers", () => {
 	});
 
 	it("refreshes the token when a logged-in browser session has cookies", async () => {
+		const consoleLog = vi
+			.spyOn(console, "log")
+			.mockImplementation(() => undefined);
 		Object.defineProperty(document, "cookie", {
 			configurable: true,
 			value: "nezha_token=token; nz-csrf=test-csrf-token",
@@ -108,5 +111,6 @@ describe("nezha api fetchers", () => {
 				"X-CSRF-Token": "test-csrf-token",
 			},
 		});
+		expect(consoleLog).not.toHaveBeenCalled();
 	});
 });

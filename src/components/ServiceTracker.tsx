@@ -34,7 +34,7 @@ export function ServiceTracker({ serverList }: { serverList: NezhaServer[] }) {
 		const totalChecks =
 			serviceData.up.reduce((a, b) => a + b, 0) +
 			serviceData.down.reduce((a, b) => a + b, 0);
-		const uptime = (totalUp / totalChecks) * 100;
+		const uptime = totalChecks > 0 ? (totalUp / totalChecks) * 100 : 0;
 
 		const avgDelay =
 			serviceData.delay.length > 0

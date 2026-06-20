@@ -207,11 +207,30 @@ type links = {
 	name: string;
 };
 
+function parseCustomLinks(customLinks: string | undefined): links[] | null {
+	if (!customLinks) return null;
+
+	try {
+		const parsedLinks = JSON.parse(customLinks);
+
+		if (!Array.isArray(parsedLinks)) {
+			return null;
+		}
+
+		return parsedLinks.filter(
+			(link): link is links =>
+				typeof link?.link === "string" && typeof link?.name === "string",
+		);
+	} catch {
+		return null;
+	}
+}
+
 function Links() {
 	// @ts-expect-error CustomLinks is a global variable
 	const customLinks = window.CustomLinks as string;
 
-	const links: links[] | null = customLinks ? JSON.parse(customLinks) : null;
+	const links = parseCustomLinks(customLinks);
 
 	if (!links) return null;
 

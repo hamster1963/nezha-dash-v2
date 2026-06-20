@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import ServerFlag from "@/components/ServerFlag";
 import ServerUsageBar from "@/components/ServerUsageBar";
 import { formatBytes } from "@/lib/format";
+import { saveMainPageScrollPosition } from "@/lib/navigation";
 import {
 	GetFontLogoClass,
 	GetOsName,
@@ -41,7 +42,7 @@ export default function ServerCardInline({
 	} = formatNezhaInfo(now, serverInfo);
 
 	const cardClick = () => {
-		sessionStorage.setItem("fromMainPage", "true");
+		saveMainPageScrollPosition();
 		navigate(`/server/${serverInfo.id}`);
 	};
 

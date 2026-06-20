@@ -40,6 +40,12 @@ export default function ServerDetailOverview({
 		if (previousPath) {
 			setHasHistory(true);
 		}
+
+		return () => {
+			if (previousPath) {
+				sessionStorage.removeItem("fromMainPage");
+			}
+		};
 	}, []);
 
 	const { lastData, connected } = useWebSocketContext();

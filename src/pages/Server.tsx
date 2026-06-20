@@ -46,8 +46,9 @@ export default function Servers() {
 	const [showServices, setShowServices] = useState<string>("0");
 	const [showMap, setShowMap] = useState<string>("0");
 	const [inline, setInline] = useState<string>("0");
-	const containerRef = useRef<HTMLDivElement>(null);
+	const hasRestoredScroll = useRef(false);
 	const [currentGroup, setCurrentGroup] = useState<string>("All");
+	const nezhaWsData = lastData;
 
 	const customBackgroundImage =
 		(window.CustomBackgroundImage as string) !== ""
@@ -56,18 +57,24 @@ export default function Servers() {
 
 	const restoreScrollPosition = useCallback(() => {
 		const savedPosition = sessionStorage.getItem("scrollPosition");
-		if (savedPosition && containerRef.current) {
-			containerRef.current.scrollTop = Number(savedPosition);
+		const scrollTop = savedPosition ? Number(savedPosition) : Number.NaN;
+
+		if (hasRestoredScroll.current || !Number.isFinite(scrollTop)) {
+			return;
 		}
+
+		hasRestoredScroll.current = true;
+		requestAnimationFrame(() => {
+			requestAnimationFrame(() => {
+				window.scrollTo({ top: scrollTop, left: 0, behavior: "auto" });
+			});
+		});
 	}, []);
 
 	const handleTagChange = (newGroup: string) => {
 		setCurrentGroup(newGroup);
 		sessionStorage.setItem("selectedGroup", newGroup);
-		sessionStorage.setItem(
-			"scrollPosition",
-			String(containerRef.current?.scrollTop || 0),
-		);
+		sessionStorage.setItem("scrollPosition", String(window.scrollY || 0));
 	};
 
 	useEffect(() => {
@@ -120,11 +127,13 @@ export default function Servers() {
 	useEffect(() => {
 		const savedGroup = sessionStorage.getItem("selectedGroup") || "All";
 		setCurrentGroup(savedGroup);
+	}, []);
 
-		restoreScrollPosition();
-	}, [restoreScrollPosition]);
-
-	const nezhaWsData = lastData;
+	useEffect(() => {
+		if (nezhaWsData) {
+			restoreScrollPosition();
+		}
+	}, [nezhaWsData, restoreScrollPosition]);
 
 	const groupTabs = [
 		"All",
@@ -250,7 +259,9 @@ export default function Servers() {
 				comparison = (a.state?.uptime ?? 0) - (b.state?.uptime ?? 0);
 				break;
 			case "system":
-				comparison = a.host.platform.localeCompare(b.host.platform);
+				comparison = (a.host?.platform ?? "").localeCompare(
+					b.host?.platform ?? "",
+				);
 				break;
 			case "cpu":
 				comparison = (a.state?.cpu ?? 0) - (b.state?.cpu ?? 0);
@@ -433,10 +444,7 @@ export default function Servers() {
 			)}
 			{showServices === "1" && <ServiceTracker serverList={filteredServers} />}
 			{inline === "1" && (
-				<section
-					ref={containerRef}
-					className="flex flex-col gap-2 overflow-x-scroll p-px scrollbar-hidden mt-6 server-inline-list"
-				>
+				<section className="flex flex-col gap-2 overflow-x-scroll p-px scrollbar-hidden mt-6 server-inline-list">
 					{filteredServers.map((serverInfo) => (
 						<ServerCardInline
 							now={nezhaWsData.now}
@@ -447,10 +455,7 @@ export default function Servers() {
 				</section>
 			)}
 			{inline === "0" && (
-				<section
-					ref={containerRef}
-					className="grid grid-cols-1 gap-2 md:grid-cols-2 mt-6 server-card-list"
-				>
+				<section className="grid grid-cols-1 gap-2 md:grid-cols-2 mt-6 server-card-list">
 					{filteredServers.map((serverInfo) => (
 						<ServerCard
 							now={nezhaWsData.now}

@@ -51,7 +51,6 @@ export const fetchLoginUser = async (): Promise<LoginUserResponse> => {
 	) {
 		lastestRefreshTokenAt = Date.now();
 		const csrfToken = getCsrfToken();
-		console.log("Refreshing token with CSRF token:", csrfToken);
 		fetch("/api/v1/refresh-token", {
 			method: "POST",
 			headers: {

@@ -83,8 +83,14 @@ describe("DashCommand", () => {
 		expect(screen.getByText("edge-7")).toBeInTheDocument();
 		expect(screen.getByText("ToggleDarkMode")).toBeInTheDocument();
 
+		Object.defineProperty(window, "scrollY", {
+			configurable: true,
+			value: 256,
+		});
 		await user.click(screen.getByText("edge-7"));
 		expect(dashMocks.navigate).toHaveBeenCalledWith("/server/7");
+		expect(sessionStorage.getItem("fromMainPage")).toBe("true");
+		expect(sessionStorage.getItem("scrollPosition")).toBe("256");
 		expect(dashMocks.closeCommand).toHaveBeenCalled();
 
 		await user.click(screen.getByText("ToggleDarkMode"));

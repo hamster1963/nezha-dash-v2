@@ -3,12 +3,12 @@ import { useNavigate } from "react-router-dom";
 import ServerFlag from "@/components/ServerFlag";
 import ServerUsageBar from "@/components/ServerUsageBar";
 import { formatBytes } from "@/lib/format";
-import { saveMainPageScrollPosition } from "@/lib/navigation";
 import {
 	GetFontLogoClass,
 	GetOsName,
 	MageMicrosoftWindows,
 } from "@/lib/logo-class";
+import { saveMainPageScrollPosition } from "@/lib/navigation";
 import { cn, formatNezhaInfo, parsePublicNote } from "@/lib/utils";
 import type { NezhaServer } from "@/types/nezha-api";
 import BillingInfo from "./billingInfo";

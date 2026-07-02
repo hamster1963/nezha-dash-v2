@@ -97,6 +97,12 @@ export default defineConfig({
 		},
 	},
 	build: {
+		// Target older Safari versions (iOS 15/16) explicitly, since Vite's
+		// default "widely-available browsers" target only covers the latest
+		// two major Safari releases and would otherwise emit syntax that
+		// crashes on older WebKit engines (white screen on load).
+		target: ["es2020", "safari15"],
+		cssTarget: ["safari15"],
 		rolldownOptions: {
 			output: {
 				entryFileNames: `assets/[name].[hash].js`,

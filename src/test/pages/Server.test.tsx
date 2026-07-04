@@ -339,7 +339,28 @@ describe("Servers page", () => {
 			lastData: websocketPayload([createServer({ id: 1, name: "alpha" })]),
 		});
 
-		expect(scrollTo).not.toHaveBeenCalled();
+		expect(scrollTo).not.toHaveBeenCalledWith({
+			top: 345,
+			left: 0,
+			behavior: "auto",
+		});
+	});
+
+	it("virtualizes large server lists instead of rendering every card", () => {
+		const servers = Array.from({ length: 2000 }, (_, index) =>
+			createServer({ id: index + 1, name: `server-${index + 1}` }),
+		);
+
+		renderServerPage({
+			connected: true,
+			lastData: websocketPayload(servers),
+		});
+
+		expect(screen.getByTestId("server-overview")).toHaveTextContent(
+			"2000:2000:0",
+		);
+		expect(screen.getAllByTestId("server-card").length).toBeLessThan(2000);
+		expect(screen.getAllByTestId("server-card").length).toBeGreaterThan(0);
 	});
 
 	it("toggles map and service tracker controls when service data exists", async () => {

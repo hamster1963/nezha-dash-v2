@@ -87,27 +87,27 @@ describe("InteractiveMap", () => {
 				width={900}
 				height={500}
 				filteredFeatures={filteredFeatures}
-				nezhaServerList={[
-					createServer({
-						id: 11,
-						name: "us-online",
-						country_code: "us",
-						last_active: "2025-01-01T00:00:00.000Z",
-					}),
-					createServer({
-						id: 12,
-						name: "us-offline",
-						country_code: "us",
-						last_active: "2024-12-31T00:00:00.000Z",
-					}),
-					createServer({
-						id: 13,
-						name: "sg-edge",
-						country_code: "sg",
-						last_active: "2025-01-01T00:00:00.000Z",
-					}),
-				]}
-				now={now}
+				countryServers={{
+					US: [
+						{
+							id: 11,
+							name: "us-online",
+							status: true,
+						},
+						{
+							id: 12,
+							name: "us-offline",
+							status: false,
+						},
+					],
+					SG: [
+						{
+							id: 13,
+							name: "sg-edge",
+							status: true,
+						},
+					],
+				}}
 			/>,
 		);
 
@@ -149,14 +149,15 @@ describe("InteractiveMap", () => {
 				width={900}
 				height={500}
 				filteredFeatures={filteredFeatures}
-				nezhaServerList={[
-					createServer({
-						id: 11,
-						name: "us-online",
-						country_code: "us",
-					}),
-				]}
-				now={now}
+				countryServers={{
+					US: [
+						{
+							id: 11,
+							name: "us-online",
+							status: true,
+						},
+					],
+				}}
 			/>,
 		);
 

@@ -9,6 +9,8 @@
 	},
 	"scripts": {
 		"dev": "vite",
+		"dev:mock": "node scripts/dev-mock.js",
+		"mock:server": "node scripts/mock-nezha-server.js",
 		"typecheck": "tsc -b",
 		"build": "pnpm run typecheck && vite build",
 		"lint": "biome lint",
@@ -41,6 +43,7 @@
 		"@tanstack/react-query": "5.101.0",
 		"@tanstack/react-query-devtools": "5.101.0",
 		"@tanstack/react-table": "8.21.3",
+		"@tanstack/react-virtual": "^3.14.5",
 		"@types/d3-geo": "3.1.0",
 		"@types/luxon": "3.7.1",
 		"class-variance-authority": "0.7.1",
@@ -79,7 +82,8 @@
 		"tailwindcss": "^4.3.2",
 		"typescript": "~6.0.3",
 		"vite": "^8.1.2",
-		"vitest": "^4.1.9"
+		"vitest": "^4.1.9",
+		"ws": "^8.21.0"
 	},
 	"packageManager": "pnpm@11.5.1+sha512.93f7b57422ea7068257235b4c16eb60762eb68e1dc23723199cc739043ea9be2c4143274a399d8c6defa2b1176226d9ca1c4b63482d6200c1a8fbaa78c1d1485"
 }

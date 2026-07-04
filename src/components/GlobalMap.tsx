@@ -1,4 +1,5 @@
 import { geoEquirectangular, geoPath } from "d3-geo";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import useTooltip from "@/hooks/use-tooltip";
 import { geoJsonString } from "@/lib/geo-json-string";
@@ -8,6 +9,28 @@ import type { NezhaServer } from "@/types/nezha-api";
 
 import MapTooltip from "./MapTooltip";
 
+const geoJson = JSON.parse(geoJsonString) as {
+	features: Array<{
+		type: "Feature";
+		properties: {
+			iso_a2_eh: string;
+			iso_a3_eh: string;
+			[key: string]: string;
+		};
+		geometry: never;
+	}>;
+};
+
+const filteredFeatures = geoJson.features.filter(
+	(feature) => feature.properties.iso_a3_eh !== "",
+);
+
+type TooltipServer = {
+	id: number;
+	name: string;
+	status: boolean;
+};
+
 export default function GlobalMap({
 	serverList,
 	now,
@@ -16,32 +39,38 @@ export default function GlobalMap({
 	now: number;
 }) {
 	const { t } = useTranslation();
-	const countryList: string[] = [];
-	const serverCounts: { [key: string]: number } = {};
+	const { countryList, countryServers, serverCounts } = useMemo(() => {
+		const countryList: string[] = [];
+		const countryServers: Record<string, TooltipServer[]> = {};
+		const serverCounts: Record<string, number> = {};
+
+		serverList.forEach((server) => {
+			if (!server.country_code) return;
+
+			const countryCode = server.country_code.toUpperCase();
+			if (!countryServers[countryCode]) {
+				countryList.push(countryCode);
+				countryServers[countryCode] = [];
+			}
+
+			serverCounts[countryCode] = (serverCounts[countryCode] || 0) + 1;
+			countryServers[countryCode].push({
+				id: server.id,
+				name: server.name,
+				status: formatNezhaInfo(now, server).online,
+			});
+		});
+
+		return { countryList, countryServers, serverCounts };
+	}, [now, serverList]);
 
 	const customBackgroundImage =
 		(window.CustomBackgroundImage as string) !== ""
 			? window.CustomBackgroundImage
 			: undefined;
 
-	serverList.forEach((server) => {
-		if (server.country_code) {
-			const countryCode = server.country_code.toUpperCase();
-			if (!countryList.includes(countryCode)) {
-				countryList.push(countryCode);
-			}
-			serverCounts[countryCode] = (serverCounts[countryCode] || 0) + 1;
-		}
-	});
-
 	const width = 900;
 	const height = 500;
-
-	const geoJson = JSON.parse(geoJsonString);
-	const filteredFeatures = geoJson.features.filter(
-		(feature: { properties: { iso_a3_eh: string } }) =>
-			feature.properties.iso_a3_eh !== "",
-	);
 
 	return (
 		<section
@@ -59,8 +88,7 @@ export default function GlobalMap({
 					width={width}
 					height={height}
 					filteredFeatures={filteredFeatures}
-					nezhaServerList={serverList}
-					now={now}
+					countryServers={countryServers}
 				/>
 			</div>
 		</section>
@@ -75,13 +103,13 @@ interface InteractiveMapProps {
 	filteredFeatures: {
 		type: "Feature";
 		properties: {
+			iso_a3_eh: string;
 			iso_a2_eh: string;
 			[key: string]: string;
 		};
 		geometry: never;
 	}[];
-	nezhaServerList: NezhaServer[];
-	now: number;
+	countryServers: Record<string, TooltipServer[]>;
 }
 
 export function InteractiveMap({
@@ -90,17 +118,31 @@ export function InteractiveMap({
 	width,
 	height,
 	filteredFeatures,
-	nezhaServerList,
-	now,
+	countryServers,
 }: InteractiveMapProps) {
 	const { setTooltipData } = useTooltip();
 
-	const projection = geoEquirectangular()
-		.scale(140)
-		.translate([width / 2, height / 2])
-		.rotate([-12, 0, 0]);
+	const { path, projection } = useMemo(() => {
+		const projection = geoEquirectangular()
+			.scale(140)
+			.translate([width / 2, height / 2])
+			.rotate([-12, 0, 0]);
 
-	const path = geoPath().projection(projection);
+		return {
+			path: geoPath().projection(projection),
+			projection,
+		};
+	}, [height, width]);
+
+	const featureCountryCodes = useMemo(
+		() =>
+			new Set(filteredFeatures.map((feature) => feature.properties.iso_a2_eh)),
+		[filteredFeatures],
+	);
+	const highlightedCountryCodes = useMemo(
+		() => new Set(countries),
+		[countries],
+	);
 
 	return (
 		<div
@@ -130,7 +172,7 @@ export function InteractiveMap({
 						onMouseEnter={() => setTooltipData(null)}
 					/>
 					{filteredFeatures.map((feature, index) => {
-						const isHighlighted = countries.includes(
+						const isHighlighted = highlightedCountryCodes.has(
 							feature.properties.iso_a2_eh,
 						);
 
@@ -152,21 +194,11 @@ export function InteractiveMap({
 									}
 									if (path.centroid(feature)) {
 										const countryCode = feature.properties.iso_a2_eh;
-										const countryServers = nezhaServerList
-											.filter(
-												(server: NezhaServer) =>
-													server.country_code?.toUpperCase() === countryCode,
-											)
-											.map((server: NezhaServer) => ({
-												id: server.id,
-												name: server.name,
-												status: formatNezhaInfo(now, server).online,
-											}));
 										setTooltipData({
 											centroid: path.centroid(feature),
 											country: feature.properties.name,
 											count: serverCount,
-											servers: countryServers,
+											servers: countryServers[countryCode] ?? [],
 										});
 									}
 								}}
@@ -177,9 +209,7 @@ export function InteractiveMap({
 					{/* 渲染不在 filteredFeatures 中的国家标记点 */}
 					{countries.map((countryCode) => {
 						// 检查该国家是否已经在 filteredFeatures 中
-						const isInFilteredFeatures = filteredFeatures.some(
-							(feature) => feature.properties.iso_a2_eh === countryCode,
-						);
+						const isInFilteredFeatures = featureCountryCodes.has(countryCode);
 
 						// 如果已经在 filteredFeatures 中，跳过
 						if (isInFilteredFeatures) return null;
@@ -196,22 +226,11 @@ export function InteractiveMap({
 							<g
 								key={countryCode}
 								onMouseEnter={() => {
-									const countryServers = nezhaServerList
-										.filter(
-											(server: NezhaServer) =>
-												server.country_code?.toUpperCase() ===
-												countryCode.toUpperCase(),
-										)
-										.map((server: NezhaServer) => ({
-											id: server.id,
-											name: server.name,
-											status: formatNezhaInfo(now, server).online,
-										}));
 									setTooltipData({
 										centroid: [x, y],
 										country: coords.name,
 										count: serverCount,
-										servers: countryServers,
+										servers: countryServers[countryCode] ?? [],
 									});
 								}}
 								className="cursor-pointer"

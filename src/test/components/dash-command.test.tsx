@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DashCommand } from "@/components/DashCommand";
 import { createServer } from "@/test/fixtures";
 
@@ -61,6 +61,16 @@ function seedWebSocketData() {
 }
 
 describe("DashCommand", () => {
+	beforeEach(() => {
+		dashMocks.closeCommand.mockClear();
+		dashMocks.navigate.mockClear();
+		dashMocks.setTheme.mockClear();
+		dashMocks.toggleCommand.mockClear();
+		dashMocks.isOpen = true;
+		dashMocks.connected = true;
+		dashMocks.lastData = null;
+	});
+
 	it("does not render until websocket data is available", () => {
 		dashMocks.connected = false;
 		dashMocks.lastData = null;
@@ -68,6 +78,15 @@ describe("DashCommand", () => {
 		const { container } = render(<DashCommand />);
 
 		expect(container).toBeEmptyDOMElement();
+	});
+
+	it("does not mount server command items while the dialog is closed", () => {
+		seedWebSocketData();
+		dashMocks.isOpen = false;
+
+		render(<DashCommand />);
+
+		expect(screen.queryByText("edge-7")).not.toBeInTheDocument();
 	});
 
 	it("renders server and shortcut commands, handles selection, and listens for keyboard toggle", async () => {

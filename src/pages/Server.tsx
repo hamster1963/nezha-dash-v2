@@ -7,22 +7,41 @@ import {
 	ViewColumnsIcon,
 } from "@heroicons/react/20/solid";
 import { useQuery } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import GlobalMap from "@/components/GlobalMap";
 import GroupSwitch from "@/components/GroupSwitch";
 import { Loader } from "@/components/loading/Loader";
-import ServerCard from "@/components/ServerCard";
-import ServerCardInline from "@/components/ServerCardInline";
 import ServerOverview from "@/components/ServerOverview";
 import { ServiceTracker } from "@/components/ServiceTracker";
+import VirtualServerList from "@/components/VirtualServerList";
 import { SORT_TYPES } from "@/context/sort-context";
 import { useSort } from "@/hooks/use-sort";
 import { useStatus } from "@/hooks/use-status";
 import { useWebSocketContext } from "@/hooks/use-websocket-context";
 import { fetchServerGroup, fetchService } from "@/lib/nezha-api";
-import { cn, formatNezhaInfo } from "@/lib/utils";
-import type { ServerGroup } from "@/types/nezha-api";
+import { cn } from "@/lib/utils";
+import type { NezhaServer, ServerGroup } from "@/types/nezha-api";
+
+type PreparedServer = {
+	online: boolean;
+	server: NezhaServer;
+};
+
+const EMPTY_SERVER_LIST: NezhaServer[] = [];
+
+const isServerOnline = (now: number, server: NezhaServer) => {
+	const lastActiveTime = server.last_active.startsWith("000")
+		? 0
+		: Date.parse(server.last_active);
+
+	return now - lastActiveTime <= 30000;
+};
+
+const getUsagePercent = (used = 0, total = 0) => {
+	if (!total) return 0;
+	return (used / total) * 100;
+};
 
 export default function Servers() {
 	const { t } = useTranslation();
@@ -140,19 +159,195 @@ export default function Servers() {
 		}
 	}, [nezhaWsData, restoreScrollPosition]);
 
-	const groupTabs = [
-		"All",
-		...(groupData?.data
-			?.filter((item: ServerGroup) => {
-				return (
-					Array.isArray(item.servers) &&
-					item.servers.some((serverId) =>
-						nezhaWsData?.servers?.some((server) => server.id === serverId),
-					)
-				);
-			})
-			?.map((item: ServerGroup) => item.group.name) || []),
-	];
+	const groupServerIdSets = useMemo(() => {
+		const sets = new Map<string, Set<number>>();
+
+		for (const item of groupData?.data ?? []) {
+			if (Array.isArray(item.servers)) {
+				sets.set(item.group.name, new Set(item.servers));
+			}
+		}
+
+		return sets;
+	}, [groupData?.data]);
+
+	const groupTabs = useMemo(
+		() => [
+			"All",
+			...(groupData?.data?.map((item: ServerGroup) => item.group.name) || []),
+		],
+		[groupData?.data],
+	);
+	const {
+		down,
+		downSpeed,
+		filteredServers,
+		offlineServers,
+		onlineServers,
+		totalServers,
+		up,
+		upSpeed,
+	} = useMemo(() => {
+		if (!nezhaWsData) {
+			return {
+				down: 0,
+				downSpeed: 0,
+				filteredServers: EMPTY_SERVER_LIST,
+				offlineServers: 0,
+				onlineServers: 0,
+				totalServers: 0,
+				up: 0,
+				upSpeed: 0,
+			};
+		}
+
+		const currentGroupServerIds = groupServerIdSets.get(currentGroup);
+		const groupFilteredServers: PreparedServer[] = [];
+		const overview = {
+			down: 0,
+			downSpeed: 0,
+			offlineServers: 0,
+			onlineServers: 0,
+			up: 0,
+			upSpeed: 0,
+		};
+
+		for (const server of nezhaWsData.servers) {
+			if (currentGroup !== "All" && !currentGroupServerIds?.has(server.id)) {
+				continue;
+			}
+
+			const online = isServerOnline(nezhaWsData.now, server);
+
+			groupFilteredServers.push({
+				online,
+				server,
+			});
+
+			if (!online) {
+				overview.offlineServers += 1;
+				continue;
+			}
+
+			overview.onlineServers += 1;
+			overview.up += server.state?.net_out_transfer ?? 0;
+			overview.down += server.state?.net_in_transfer ?? 0;
+			overview.upSpeed += server.state?.net_out_speed ?? 0;
+			overview.downSpeed += server.state?.net_in_speed ?? 0;
+		}
+
+		const statusFilteredServers =
+			status === "all"
+				? groupFilteredServers
+				: groupFilteredServers.filter((item) =>
+						status === "online" ? item.online : !item.online,
+					);
+
+		if (sortType === "default") {
+			const onlineServers: NezhaServer[] = [];
+			const offlineServers: NezhaServer[] = [];
+
+			for (const item of statusFilteredServers) {
+				if (item.online) {
+					onlineServers.push(item.server);
+				} else {
+					offlineServers.push(item.server);
+				}
+			}
+
+			return {
+				...overview,
+				filteredServers: [...onlineServers, ...offlineServers],
+				totalServers: groupFilteredServers.length,
+			};
+		}
+
+		const sortedServers = [...statusFilteredServers].sort((a, b) => {
+			if (sortType !== "name") {
+				if (!a.online && b.online) return 1;
+				if (a.online && !b.online) return -1;
+				if (!a.online && !b.online) {
+					return 0;
+				}
+			}
+
+			let comparison = 0;
+
+			switch (sortType) {
+				case "name":
+					comparison = a.server.name.localeCompare(b.server.name);
+					break;
+				case "uptime":
+					comparison =
+						(a.server.state?.uptime ?? 0) - (b.server.state?.uptime ?? 0);
+					break;
+				case "system":
+					comparison = (a.server.host?.platform ?? "").localeCompare(
+						b.server.host?.platform ?? "",
+					);
+					break;
+				case "cpu":
+					comparison = (a.server.state?.cpu ?? 0) - (b.server.state?.cpu ?? 0);
+					break;
+				case "mem":
+					comparison =
+						getUsagePercent(
+							a.server.state?.mem_used,
+							a.server.host?.mem_total,
+						) -
+						getUsagePercent(b.server.state?.mem_used, b.server.host?.mem_total);
+					break;
+				case "disk":
+					comparison =
+						getUsagePercent(
+							a.server.state?.disk_used,
+							a.server.host?.disk_total,
+						) -
+						getUsagePercent(
+							b.server.state?.disk_used,
+							b.server.host?.disk_total,
+						);
+					break;
+				case "up":
+					comparison =
+						(a.server.state?.net_out_speed ?? 0) -
+						(b.server.state?.net_out_speed ?? 0);
+					break;
+				case "down":
+					comparison =
+						(a.server.state?.net_in_speed ?? 0) -
+						(b.server.state?.net_in_speed ?? 0);
+					break;
+				case "up total":
+					comparison =
+						(a.server.state?.net_out_transfer ?? 0) -
+						(b.server.state?.net_out_transfer ?? 0);
+					break;
+				case "down total":
+					comparison =
+						(a.server.state?.net_in_transfer ?? 0) -
+						(b.server.state?.net_in_transfer ?? 0);
+					break;
+				default:
+					comparison = 0;
+			}
+
+			return sortOrder === "asc" ? comparison : -comparison;
+		});
+
+		return {
+			...overview,
+			filteredServers: sortedServers.map((item) => item.server),
+			totalServers: groupFilteredServers.length,
+		};
+	}, [
+		currentGroup,
+		groupServerIdSets,
+		nezhaWsData,
+		sortOrder,
+		sortType,
+		status,
+	]);
 
 	if (!connected && !lastData) {
 		return (
@@ -172,137 +367,6 @@ export default function Servers() {
 			</div>
 		);
 	}
-
-	let filteredServers =
-		nezhaWsData?.servers?.filter((server) => {
-			if (currentGroup === "All") return true;
-			const group = groupData?.data?.find(
-				(g: ServerGroup) =>
-					g.group.name === currentGroup &&
-					Array.isArray(g.servers) &&
-					g.servers.includes(server.id),
-			);
-			return !!group;
-		}) || [];
-
-	const totalServers = filteredServers.length || 0;
-	const onlineServers =
-		filteredServers.filter(
-			(server) => formatNezhaInfo(nezhaWsData.now, server).online,
-		)?.length || 0;
-	const offlineServers =
-		filteredServers.filter(
-			(server) => !formatNezhaInfo(nezhaWsData.now, server).online,
-		)?.length || 0;
-	const up =
-		filteredServers.reduce(
-			(total, server) =>
-				formatNezhaInfo(nezhaWsData.now, server).online
-					? total + (server.state?.net_out_transfer ?? 0)
-					: total,
-			0,
-		) || 0;
-	const down =
-		filteredServers.reduce(
-			(total, server) =>
-				formatNezhaInfo(nezhaWsData.now, server).online
-					? total + (server.state?.net_in_transfer ?? 0)
-					: total,
-			0,
-		) || 0;
-
-	const upSpeed =
-		filteredServers.reduce(
-			(total, server) =>
-				formatNezhaInfo(nezhaWsData.now, server).online
-					? total + (server.state?.net_out_speed ?? 0)
-					: total,
-			0,
-		) || 0;
-	const downSpeed =
-		filteredServers.reduce(
-			(total, server) =>
-				formatNezhaInfo(nezhaWsData.now, server).online
-					? total + (server.state?.net_in_speed ?? 0)
-					: total,
-			0,
-		) || 0;
-
-	filteredServers =
-		status === "all"
-			? filteredServers
-			: filteredServers.filter((server) =>
-					[status].includes(
-						formatNezhaInfo(nezhaWsData.now, server).online
-							? "online"
-							: "offline",
-					),
-				);
-
-	filteredServers = filteredServers.sort((a, b) => {
-		const serverAInfo = formatNezhaInfo(nezhaWsData.now, a);
-		const serverBInfo = formatNezhaInfo(nezhaWsData.now, b);
-
-		if (sortType !== "name") {
-			// 仅在非 "name" 排序时，先按在线状态排序
-			if (!serverAInfo.online && serverBInfo.online) return 1;
-			if (serverAInfo.online && !serverBInfo.online) return -1;
-			if (!serverAInfo.online && !serverBInfo.online) {
-				// 如果两者都离线，可以继续按照其他条件排序，或者保持原序
-				// 这里选择保持原序
-				return 0;
-			}
-		}
-
-		let comparison = 0;
-
-		switch (sortType) {
-			case "name":
-				comparison = a.name.localeCompare(b.name);
-				break;
-			case "uptime":
-				comparison = (a.state?.uptime ?? 0) - (b.state?.uptime ?? 0);
-				break;
-			case "system":
-				comparison = (a.host?.platform ?? "").localeCompare(
-					b.host?.platform ?? "",
-				);
-				break;
-			case "cpu":
-				comparison = (a.state?.cpu ?? 0) - (b.state?.cpu ?? 0);
-				break;
-			case "mem":
-				comparison =
-					(formatNezhaInfo(nezhaWsData.now, a).mem ?? 0) -
-					(formatNezhaInfo(nezhaWsData.now, b).mem ?? 0);
-				break;
-			case "disk":
-				comparison =
-					(formatNezhaInfo(nezhaWsData.now, a).disk ?? 0) -
-					(formatNezhaInfo(nezhaWsData.now, b).disk ?? 0);
-				break;
-			case "up":
-				comparison =
-					(a.state?.net_out_speed ?? 0) - (b.state?.net_out_speed ?? 0);
-				break;
-			case "down":
-				comparison =
-					(a.state?.net_in_speed ?? 0) - (b.state?.net_in_speed ?? 0);
-				break;
-			case "up total":
-				comparison =
-					(a.state?.net_out_transfer ?? 0) - (b.state?.net_out_transfer ?? 0);
-				break;
-			case "down total":
-				comparison =
-					(a.state?.net_in_transfer ?? 0) - (b.state?.net_in_transfer ?? 0);
-				break;
-			default:
-				comparison = 0;
-		}
-
-		return sortOrder === "asc" ? comparison : -comparison;
-	});
 
 	return (
 		<div className="mx-auto w-full max-w-5xl px-0">
@@ -448,28 +512,11 @@ export default function Servers() {
 				/>
 			)}
 			{showServices === "1" && <ServiceTracker serverList={filteredServers} />}
-			{inline === "1" && (
-				<section className="flex flex-col gap-2 overflow-x-scroll p-px scrollbar-hidden mt-6 server-inline-list">
-					{filteredServers.map((serverInfo) => (
-						<ServerCardInline
-							now={nezhaWsData.now}
-							key={serverInfo.id}
-							serverInfo={serverInfo}
-						/>
-					))}
-				</section>
-			)}
-			{inline === "0" && (
-				<section className="grid grid-cols-1 gap-2 md:grid-cols-2 mt-6 server-card-list">
-					{filteredServers.map((serverInfo) => (
-						<ServerCard
-							now={nezhaWsData.now}
-							key={serverInfo.id}
-							serverInfo={serverInfo}
-						/>
-					))}
-				</section>
-			)}
+			<VirtualServerList
+				inline={inline === "1"}
+				now={nezhaWsData.now}
+				servers={filteredServers}
+			/>
 		</div>
 	);
 }

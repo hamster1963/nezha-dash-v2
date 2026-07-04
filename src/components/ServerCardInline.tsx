@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import ServerFlag from "@/components/ServerFlag";
@@ -16,7 +17,7 @@ import PlanInfo from "./PlanInfo";
 import { Card } from "./ui/card";
 import { Separator } from "./ui/separator";
 
-export default function ServerCardInline({
+function ServerCardInline({
 	now,
 	serverInfo,
 }: {
@@ -239,3 +240,5 @@ export default function ServerCardInline({
 		</Card>
 	);
 }
+
+export default memo(ServerCardInline);

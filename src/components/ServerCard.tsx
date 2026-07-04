@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import ServerFlag from "@/components/ServerFlag";
@@ -16,7 +17,7 @@ import PlanInfo from "./PlanInfo";
 import { Badge } from "./ui/badge";
 import { Card } from "./ui/card";
 
-export default function ServerCard({
+function ServerCard({
 	now,
 	serverInfo,
 }: {
@@ -279,3 +280,5 @@ export default function ServerCard({
 		</Card>
 	);
 }
+
+export default memo(ServerCard);

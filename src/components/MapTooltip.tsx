@@ -11,14 +11,22 @@ const MapTooltip = memo(function MapTooltip() {
 
 	if (!tooltipData) return null;
 
+	const verticalPlacement =
+		tooltipData.centroid[1] < 120
+			? "translate(20%, 8px)"
+			: tooltipData.centroid[1] > 380
+				? "translate(20%, calc(-100% - 8px))"
+				: "translate(20%, -50%)";
+
 	return (
 		<div
 			className="tooltip-animate absolute hidden lg:block bg-white dark:bg-neutral-800 px-2 py-1 rounded shadow-lg text-sm dark:border dark:border-neutral-700 z-50"
+			data-testid="map-tooltip"
 			key={tooltipData.country}
 			style={{
 				left: tooltipData.centroid[0],
 				top: tooltipData.centroid[1],
-				transform: "translate(20%, -50%)",
+				transform: verticalPlacement,
 			}}
 			onMouseEnter={(e) => {
 				e.stopPropagation();

@@ -8,7 +8,6 @@ import { DashCommand } from "./components/DashCommand";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Footer from "./components/Footer";
 import Header, { RefreshToast } from "./components/Header";
-import { Skeleton } from "./components/ui/skeleton";
 import { useBackground } from "./hooks/use-background";
 import { useTheme } from "./hooks/use-theme";
 import { InjectContext } from "./lib/inject";
@@ -18,29 +17,8 @@ import ErrorPage from "./pages/ErrorPage";
 import Server from "./pages/Server";
 
 const NotFound = lazy(() => import("./pages/NotFound"));
-const ServerDetail = lazy(() => import("./pages/ServerDetail"));
-
-function ServerDetailRouteFallback() {
-	return (
-		<div className="mx-auto w-full max-w-5xl px-0 flex flex-col gap-4">
-			<div>
-				<div className="flex flex-none items-center gap-0.5 text-xl">
-					<Skeleton className="h-5 w-5 rounded-[5px] bg-muted-foreground/10 animate-none" />
-					<Skeleton className="h-[20px] w-24 rounded-[5px] bg-muted-foreground/10 animate-none" />
-				</div>
-				<Skeleton className="flex flex-wrap gap-2 h-[81px] w-1/2 mt-3 rounded-[5px] bg-muted-foreground/10 animate-none" />
-			</div>
-			<section className="grid md:grid-cols-2 lg:grid-cols-3 grid-cols-1 gap-3">
-				<Skeleton className="h-[182px] w-full rounded-[5px] bg-muted-foreground/10 animate-none" />
-				<Skeleton className="h-[182px] w-full rounded-[5px] bg-muted-foreground/10 animate-none" />
-				<Skeleton className="h-[182px] w-full rounded-[5px] bg-muted-foreground/10 animate-none" />
-				<Skeleton className="h-[182px] w-full rounded-[5px] bg-muted-foreground/10 animate-none" />
-				<Skeleton className="h-[182px] w-full rounded-[5px] bg-muted-foreground/10 animate-none" />
-				<Skeleton className="h-[182px] w-full rounded-[5px] bg-muted-foreground/10 animate-none" />
-			</section>
-		</div>
-	);
-}
+const loadServerDetail = () => import("./pages/ServerDetail");
+const ServerDetail = lazy(loadServerDetail);
 
 // Route checker component
 const RouteChecker: React.FC = () => {
@@ -58,6 +36,10 @@ const MainApp: React.FC = () => {
 	const { setTheme } = useTheme();
 	const [isCustomCodeInjected, setIsCustomCodeInjected] = useState(false);
 	const { backgroundImage: customBackgroundImage } = useBackground();
+
+	useEffect(() => {
+		loadServerDetail();
+	}, []);
 
 	useEffect(() => {
 		if (settingData?.data?.config?.custom_code) {
@@ -137,7 +119,7 @@ const MainApp: React.FC = () => {
 						<Route
 							path="/server/:id"
 							element={
-								<Suspense fallback={<ServerDetailRouteFallback />}>
+								<Suspense fallback={null}>
 									<ServerDetail />
 								</Suspense>
 							}

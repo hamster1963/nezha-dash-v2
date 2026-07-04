@@ -161,6 +161,9 @@ describe("MapTooltip", () => {
 		);
 
 		expect(await screen.findByText("Mainland China")).toBeInTheDocument();
+		expect(screen.getByTestId("map-tooltip")).toHaveStyle({
+			transform: "translate(20%, 8px)",
+		});
 		expect(screen.getByText("2 map.Servers")).toBeInTheDocument();
 		await user.click(screen.getByRole("button", { name: /edge-2/ }));
 

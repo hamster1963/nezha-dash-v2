@@ -2,12 +2,12 @@ import {
 	ArrowDownCircleIcon,
 	ArrowUpCircleIcon,
 } from "@heroicons/react/20/solid";
-import NumericText from "@numeric-text/react";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "@/components/ui/card";
 import { useStatus } from "@/hooks/use-status";
 import { formatBytes } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import NumericText from "./NumericText";
 
 type ServerOverviewProps = {
 	online: number;

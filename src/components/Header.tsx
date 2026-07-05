@@ -1,4 +1,3 @@
-import NumericText from "@numeric-text/react";
 import { useQuery } from "@tanstack/react-query";
 import { ImageMinus } from "lucide-react";
 import { DateTime } from "luxon";
@@ -16,6 +15,7 @@ import { cn } from "@/lib/utils";
 import AnimateCountClient from "./AnimatedCount";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { Loader, LoadingSpinner } from "./loading/Loader";
+import NumericText from "./NumericText";
 import { SearchButton } from "./SearchButton";
 import { Button } from "./ui/button";
 

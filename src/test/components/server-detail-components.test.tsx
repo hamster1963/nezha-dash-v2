@@ -14,10 +14,6 @@ const websocketMocks = vi.hoisted(() => ({
 	} | null,
 }));
 
-vi.mock("@numeric-text/react", () => ({
-	default: ({ value }: { value: string | number }) => <span>{value}</span>,
-}));
-
 vi.mock("@/hooks/use-websocket-context", () => ({
 	useWebSocketContext: () => websocketMocks,
 }));

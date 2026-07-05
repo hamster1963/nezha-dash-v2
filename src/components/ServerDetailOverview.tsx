@@ -1,4 +1,3 @@
-import NumericText from "@numeric-text/react";
 import countries from "i18n-iso-countries";
 import enLocale from "i18n-iso-countries/langs/en.json";
 import { useEffect, useState } from "react";
@@ -12,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useWebSocketContext } from "@/hooks/use-websocket-context";
 import { formatBytes } from "@/lib/format";
 import { cn, formatNezhaInfo } from "@/lib/utils";
+import NumericText from "./NumericText";
 import {
 	Accordion,
 	AccordionContent,

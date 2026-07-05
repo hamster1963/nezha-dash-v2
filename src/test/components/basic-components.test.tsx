@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import AnimateCountClient, { AnimateCount } from "@/components/AnimatedCount";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ChartSkeleton from "@/components/loading/ChartSkeleton";
@@ -13,16 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-
-vi.mock("@numeric-text/react", () => ({
-	default: ({
-		className,
-		value,
-	}: {
-		className?: string;
-		value: string | number;
-	}) => <span className={className}>{value}</span>,
-}));
 
 import { CommandProvider } from "@/context/command-provider";
 import { StatusProvider } from "@/context/status-provider";

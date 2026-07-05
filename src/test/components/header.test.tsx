@@ -21,12 +21,6 @@ const headerMocks = vi.hoisted(() => ({
 	updateBackground: vi.fn(),
 }));
 
-vi.mock("@numeric-text/react", () => ({
-	default: ({ value }: { value: string | number }) => (
-		<span data-testid="numeric-text">{value}</span>
-	),
-}));
-
 vi.mock("@/hooks/use-background", () => ({
 	useBackground: () => ({
 		backgroundImage: headerMocks.backgroundImage,
@@ -150,7 +144,7 @@ describe("Header", () => {
 		);
 		expect(screen.getAllByRole("link", { name: "Docs" })).toHaveLength(2);
 		expect(await screen.findAllByText("dashboard")).toHaveLength(2);
-		expect(screen.getByTestId("numeric-text")).toHaveTextContent("4");
+		expect(screen.getByText("online").closest("button")).toHaveTextContent("4");
 		expect(screen.getByText("online")).toBeInTheDocument();
 
 		await waitFor(() => {

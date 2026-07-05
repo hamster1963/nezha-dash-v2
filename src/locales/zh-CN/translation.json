@@ -105,7 +105,9 @@
 	},
 	"error": {
 		"pageNotFound": "页面不存在",
-		"backToHome": "回到主页"
+		"backToHome": "回到主页",
+		"backendUnavailableTitle": "后端 API 无法访问",
+		"backendUnavailableDescription": "页面仍会正常显示，但暂时无法加载监控数据。"
 	},
 	"tabSwitch": {
 		"Detail": "详情",

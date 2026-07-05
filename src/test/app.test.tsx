@@ -25,7 +25,12 @@ vi.mock("../components/Header", () => ({
 }));
 
 vi.mock("../pages/Server", () => ({
-	default: () => <div>server-page</div>,
+	default: ({ backendError }: { backendError?: Error | null }) => (
+		<div>
+			<div>server-page</div>
+			{backendError && <p>{backendError.message}</p>}
+		</div>
+	),
 }));
 
 vi.mock("../pages/ServerDetail", () => ({
@@ -69,11 +74,14 @@ function renderApp(route = "/") {
 	window.history.pushState({}, "", route);
 	const queryClient = createTestQueryClient();
 
-	return render(
-		<QueryClientProvider client={queryClient}>
-			<App />
-		</QueryClientProvider>,
-	);
+	return {
+		queryClient,
+		...render(
+			<QueryClientProvider client={queryClient}>
+				<App />
+			</QueryClientProvider>,
+		),
+	};
 }
 
 describe("App", () => {
@@ -110,6 +118,20 @@ describe("App", () => {
 		).toBe(true);
 	});
 
+	it("renders the app shell while initial settings are still pending", async () => {
+		appMocks.fetchSetting.mockImplementation(
+			() => new Promise(() => undefined),
+		);
+
+		renderApp();
+
+		expect(await screen.findByText("server-page")).toBeInTheDocument();
+		expect(screen.getByText("refresh-toast")).toBeInTheDocument();
+		expect(screen.getByText("header")).toBeInTheDocument();
+		expect(screen.getByText("dash-command")).toBeInTheDocument();
+		expect(screen.getByText("footer")).toBeInTheDocument();
+	});
+
 	it("injects custom code before showing the app shell", async () => {
 		appMocks.fetchSetting.mockResolvedValue(
 			settingResponse("<script>custom</script>"),
@@ -125,12 +147,39 @@ describe("App", () => {
 		expect(await screen.findByText("server-page")).toBeInTheDocument();
 	});
 
-	it("renders fetch errors through the error page", async () => {
+	it("renders the app shell when initial settings fetch fails", async () => {
 		appMocks.fetchSetting.mockRejectedValue(new Error("settings failed"));
 
 		renderApp();
 
+		expect(await screen.findByText("server-page")).toBeInTheDocument();
+		expect(screen.getByText("refresh-toast")).toBeInTheDocument();
+		expect(screen.getByText("header")).toBeInTheDocument();
+		expect(screen.getByText("dash-command")).toBeInTheDocument();
+		expect(screen.getByText("footer")).toBeInTheDocument();
 		expect(await screen.findByText("settings failed")).toBeInTheDocument();
+	});
+
+	it("keeps rendering with stale settings when a later settings refetch fails", async () => {
+		let requestCount = 0;
+		appMocks.fetchSetting.mockImplementation(() => {
+			requestCount += 1;
+			return requestCount === 1
+				? Promise.resolve(settingResponse())
+				: Promise.reject(new Error("settings failed"));
+		});
+
+		const { queryClient } = renderApp();
+
+		expect(await screen.findByText("server-page")).toBeInTheDocument();
+
+		await queryClient.refetchQueries({ queryKey: ["setting"] });
+
+		await waitFor(() => {
+			expect(appMocks.fetchSetting.mock.calls.length).toBeGreaterThanOrEqual(2);
+		});
+		expect(screen.getByText("server-page")).toBeInTheDocument();
+		expect(screen.queryByText("settings failed")).not.toBeInTheDocument();
 	});
 
 	it("routes server detail paths through the app router", async () => {

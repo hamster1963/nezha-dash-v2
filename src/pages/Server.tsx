@@ -43,19 +43,54 @@ const getUsagePercent = (used = 0, total = 0) => {
 	return (used / total) * 100;
 };
 
-export default function Servers() {
+const getErrorMessage = (error: unknown) => {
+	if (!error) return "";
+	if (error instanceof Error) return error.message;
+	return String(error);
+};
+
+function BackendErrorState({ error }: { error: unknown }) {
+	const { t } = useTranslation();
+	const message = getErrorMessage(error);
+
+	return (
+		<div className="flex min-h-96 flex-col items-center justify-center px-4 text-center">
+			<div className="flex max-w-md flex-col items-center gap-2">
+				<p className="text-sm font-semibold text-stone-900 dark:text-stone-100">
+					{t("error.backendUnavailableTitle")}
+				</p>
+				<p className="text-sm text-muted-foreground">
+					{t("error.backendUnavailableDescription")}
+				</p>
+				{message && (
+					<p className="mt-1 max-w-full break-words rounded-md bg-stone-100 px-2 py-1 text-xs text-stone-500 dark:bg-stone-800 dark:text-stone-400">
+						{message}
+					</p>
+				)}
+			</div>
+		</div>
+	);
+}
+
+export default function Servers({
+	backendError,
+}: {
+	backendError?: Error | null;
+}) {
 	const { t } = useTranslation();
 	const { sortType, sortOrder, setSortOrder, setSortType } = useSort();
-	const { data: groupData } = useQuery({
+	const { data: groupData, error: groupError } = useQuery({
 		queryKey: ["server-group"],
 		queryFn: () => fetchServerGroup(),
+		retry: false,
 	});
-	const { data: serviceData } = useQuery({
+	const { data: serviceData, error: serviceError } = useQuery({
 		queryKey: ["service"],
 		queryFn: () => fetchService(),
 		refetchOnMount: true,
 		refetchOnWindowFocus: true,
 		refetchInterval: 10000,
+		retry: false,
 	});
 	const hasServices =
 		!!serviceData?.data?.services &&
@@ -348,6 +383,12 @@ export default function Servers() {
 		sortType,
 		status,
 	]);
+
+	const currentBackendError = backendError || groupError || serviceError;
+
+	if (!nezhaWsData && currentBackendError) {
+		return <BackendErrorState error={currentBackendError} />;
+	}
 
 	if (!connected && !lastData) {
 		return (

@@ -91,7 +91,10 @@ function StatusControl() {
 
 function renderServerPage(
 	websocketValue: Partial<WebSocketContextType>,
-	{ withStatusControl = false } = {},
+	{
+		backendError = null,
+		withStatusControl = false,
+	}: { backendError?: Error | null; withStatusControl?: boolean } = {},
 ) {
 	const defaultWebsocketValue: WebSocketContextType = {
 		lastData: null,
@@ -109,7 +112,7 @@ function renderServerPage(
 					value={{ ...defaultWebsocketValue, ...websocketValue }}
 				>
 					{withStatusControl && <StatusControl />}
-					<Servers />
+					<Servers backendError={backendError} />
 				</WebSocketContext.Provider>
 			</StatusProvider>
 		</SortProvider>,
@@ -176,6 +179,42 @@ describe("Servers page", () => {
 		);
 
 		expect(screen.getByText("info.processing")).toBeInTheDocument();
+	});
+
+	it("renders a centered backend error instead of a 500 page", async () => {
+		renderServerPage(
+			{
+				connected: false,
+				lastData: null,
+			},
+			{ backendError: new Error("settings failed") },
+		);
+
+		expect(
+			screen.getByText("error.backendUnavailableTitle"),
+		).toBeInTheDocument();
+		expect(
+			screen.getByText("error.backendUnavailableDescription"),
+		).toBeInTheDocument();
+		expect(screen.getByText("settings failed")).toBeInTheDocument();
+		expect(
+			screen.queryByText("info.websocketConnecting"),
+		).not.toBeInTheDocument();
+	});
+
+	it("shows backend query errors while waiting for websocket data", async () => {
+		apiMocks.fetchServerGroup.mockRejectedValue(new Error("group failed"));
+		apiMocks.fetchService.mockRejectedValue(new Error("service failed"));
+
+		renderServerPage({
+			connected: false,
+			lastData: null,
+		});
+
+		expect(
+			await screen.findByText("error.backendUnavailableTitle"),
+		).toBeInTheDocument();
+		expect(screen.getByText("group failed")).toBeInTheDocument();
 	});
 
 	it("summarizes online and offline servers from websocket data", async () => {

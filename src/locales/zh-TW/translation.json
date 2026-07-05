@@ -98,7 +98,9 @@
 	},
 	"error": {
 		"pageNotFound": "頁面不存在",
-		"backToHome": "回到主頁"
+		"backToHome": "回到主頁",
+		"backendUnavailableTitle": "後端 API 無法存取",
+		"backendUnavailableDescription": "頁面仍會正常顯示，但暫時無法載入監控資料。"
 	},
 	"tabSwitch": {
 		"detail": "詳細資訊",

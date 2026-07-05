@@ -12,6 +12,7 @@ const Footer: React.FC = () => {
 		queryFn: () => fetchSetting(),
 		refetchOnMount: true,
 		refetchOnWindowFocus: true,
+		retry: false,
 	});
 
 	return (

@@ -25,12 +25,18 @@ const RouteChecker: React.FC = () => {
 	return <MainApp />;
 };
 
+const toError = (error: unknown) => {
+	if (!error) return null;
+	return error instanceof Error ? error : new Error(String(error));
+};
+
 const MainApp: React.FC = () => {
 	const { data: settingData, error } = useQuery({
 		queryKey: ["setting"],
 		queryFn: () => fetchSetting(),
 		refetchOnMount: true,
 		refetchOnWindowFocus: true,
+		retry: false,
 	});
 	const { i18n } = useTranslation();
 	const { setTheme } = useTheme();
@@ -59,13 +65,7 @@ const MainApp: React.FC = () => {
 		}
 	}, [forceTheme, setTheme]);
 
-	if (error) {
-		return <ErrorPage code={500} message={error.message} />;
-	}
-
-	if (!settingData) {
-		return null;
-	}
+	const initialBackendError = !settingData ? toError(error) : null;
 
 	if (settingData?.data?.config?.custom_code && !isCustomCodeInjected) {
 		return null;
@@ -115,7 +115,10 @@ const MainApp: React.FC = () => {
 					<Header />
 					<DashCommand />
 					<Routes>
-						<Route path="/" element={<Server />} />
+						<Route
+							path="/"
+							element={<Server backendError={initialBackendError} />}
+						/>
 						<Route
 							path="/server/:id"
 							element={

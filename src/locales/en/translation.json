@@ -104,7 +104,9 @@
 	},
 	"error": {
 		"pageNotFound": "Page not found",
-		"backToHome": "Back to home"
+		"backToHome": "Back to home",
+		"backendUnavailableTitle": "Backend API unavailable",
+		"backendUnavailableDescription": "The page is still available, but data cannot be loaded right now."
 	},
 	"tabSwitch": {
 		"Detail": "Detail",

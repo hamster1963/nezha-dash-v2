@@ -180,6 +180,17 @@ describe("ServerFlag", () => {
 		expect(container.querySelector(".fi-us")).toBeInTheDocument();
 	});
 
+	it("normalizes SVG flag classes and ignores invalid country codes", () => {
+		Object.assign(window, { ForceUseSvgFlag: true });
+		const { container, rerender } = render(<ServerFlag country_code="US" />);
+
+		expect(container.querySelector(".fi-us")).toBeInTheDocument();
+
+		rerender(<ServerFlag country_code="u" />);
+
+		expect(container).toBeEmptyDOMElement();
+	});
+
 	it("uses emoji flags when the canvas probe detects support", async () => {
 		Object.assign(window, { ForceUseSvgFlag: false });
 		const originalCreateElement = document.createElement.bind(document);

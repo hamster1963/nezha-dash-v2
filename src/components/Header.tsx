@@ -58,6 +58,7 @@ function Header() {
 		queryFn: () => fetchSetting(),
 		refetchOnMount: true,
 		refetchOnWindowFocus: true,
+		retry: false,
 	});
 
 	const { lastData, connected } = useWebSocketContext();

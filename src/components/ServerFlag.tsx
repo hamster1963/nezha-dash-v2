@@ -1,6 +1,10 @@
+import { hasFlag } from "country-flag-icons";
 import getUnicodeFlagIcon from "country-flag-icons/unicode";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+
+const normalizeCountryCode = (countryCode: string) =>
+	countryCode.trim().replace(/_/g, "-").toUpperCase();
 
 export default function ServerFlag({
 	country_code,
@@ -38,14 +42,18 @@ export default function ServerFlag({
 		checkEmojiSupport();
 	}, []);
 
-	if (!country_code) return null;
+	const normalizedCountryCode = normalizeCountryCode(country_code || "");
+	const canRenderSvgFlag = hasFlag(normalizedCountryCode);
+	const canRenderEmojiFlag = /^[A-Z]{2}$/.test(normalizedCountryCode);
+
+	if (!canRenderSvgFlag) return null;
 
 	return (
 		<span className={cn("text-[12px] text-muted-foreground", className)}>
-			{forceUseSvgFlag || !supportsEmojiFlags ? (
-				<span className={`fi fi-${country_code}`} />
+			{forceUseSvgFlag || !supportsEmojiFlags || !canRenderEmojiFlag ? (
+				<span className={`fi fi-${normalizedCountryCode.toLowerCase()}`} />
 			) : (
-				getUnicodeFlagIcon(country_code)
+				getUnicodeFlagIcon(normalizedCountryCode)
 			)}
 		</span>
 	);

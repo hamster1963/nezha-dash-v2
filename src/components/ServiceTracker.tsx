@@ -43,6 +43,7 @@ export function ServiceTracker({ serverList }: { serverList: NezhaServer[] }) {
 		refetchOnMount: true,
 		refetchOnWindowFocus: true,
 		refetchInterval: 10000,
+		retry: false,
 	});
 
 	const serviceSummaries = useMemo(() => {

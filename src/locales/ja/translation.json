@@ -1,1 +1,27 @@
-{}
+{
+  "overview": "概要",
+  "nezha": "ナタモニタリング",
+  "dashboard": "ダッシュボード",
+  "login": "ログイン",
+  "online": "オンライン",
+  "offline": "オフライン",
+  "whereTheTimeIs": "現在の時刻",
+  "refreshing": "リフレッシュ",
+  "info": {
+    "websocketConnecting": "WebSocketを接続中",
+    "websocketConnected": "WebSocketを接続済み",
+    "websocketDisconnected": "WebSocketが切断された",
+    "processing": "処理中..."
+  },
+  "serverOverview": {
+    "totalServers": "サーバー総数",
+    "onlineServers": "オンラインサーバー",
+    "offlineServers": "オフラインサーバー",
+    "speed": "速度",
+    "network": "ネットワーク"
+  },
+  "map": {
+    "Distributions": "サーバーの場所",
+    "Regions": "地域"
+  }
+}

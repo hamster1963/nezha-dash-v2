@@ -241,6 +241,45 @@ describe("Servers page", () => {
 		});
 	});
 
+	it("shows an empty state and hides controls when there are no servers", () => {
+		const { container } = renderServerPage({
+			connected: true,
+			lastData: websocketPayload([]),
+		});
+
+		expect(screen.getByTestId("server-overview")).toHaveTextContent("0:0:0");
+		expect(screen.getByText("info.noServers")).toBeInTheDocument();
+		expect(
+			container.querySelector(".server-overview-controls"),
+		).not.toBeVisible();
+		expect(screen.queryByTestId("server-card")).not.toBeInTheDocument();
+		expect(screen.queryByTestId("global-map")).not.toBeInTheDocument();
+		expect(screen.queryByTestId("service-tracker")).not.toBeInTheDocument();
+	});
+
+	it("shows a filtered empty state while keeping controls available", async () => {
+		const offline = createServer({
+			id: 1,
+			name: "offline",
+			last_active: "2024-12-31T23:00:00.000Z",
+		});
+		const user = userEvent.setup();
+
+		const { container } = renderServerPage(
+			{
+				connected: true,
+				lastData: websocketPayload([offline]),
+			},
+			{ withStatusControl: true },
+		);
+
+		await user.click(screen.getByRole("button", { name: "online-only" }));
+
+		expect(screen.getByText("info.noMatchingServers")).toBeInTheDocument();
+		expect(container.querySelector(".server-overview-controls")).not.toBeNull();
+		expect(screen.queryByTestId("server-card")).not.toBeInTheDocument();
+	});
+
 	it("filters servers by selected group", async () => {
 		const online = createServer({ id: 1, name: "alpha" });
 		const offline = createServer({

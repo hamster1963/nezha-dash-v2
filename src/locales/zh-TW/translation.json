@@ -11,7 +11,9 @@
 		"websocketConnecting": "WebSocket 連線中",
 		"websocketConnected": "WebSocket 連線成功",
 		"websocketDisconnected": "WebSocket 連線中斷",
-		"processing": "處理中..."
+		"processing": "處理中...",
+		"noServers": "暫無伺服器",
+		"noMatchingServers": "沒有符合目前篩選條件的伺服器"
 	},
 	"serverOverview": {
 		"totalServers": "總伺服器",

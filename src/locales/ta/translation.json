@@ -23,7 +23,9 @@
 		"websocketConnecting": "வெப்சாக்கெட் இணைத்தல்",
 		"websocketConnected": "வெப்சாக்கெட் இணைக்கப்பட்டுள்ளது",
 		"websocketDisconnected": "வெப்சாக்கெட் துண்டிக்கப்பட்டது",
-		"processing": "செயலாக்கம் ..."
+		"processing": "செயலாக்கம் ...",
+		"noServers": "சேவையகங்கள் எதுவும் இல்லை",
+		"noMatchingServers": "தற்போதைய வடிப்பான்களுடன் பொருந்தும் சேவையகங்கள் எதுவும் இல்லை"
 	},
 	"serverOverview": {
 		"totalServers": "மொத்த சேவையகங்கள்",

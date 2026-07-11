@@ -127,7 +127,9 @@
 		"websocketConnecting": "Conexión WebSocket",
 		"websocketDisconnected": "WebSocket desconectado",
 		"websocketConnected": "WebSocket conectado",
-		"processing": "Procesando..."
+		"processing": "Procesando...",
+		"noServers": "No hay servidores disponibles",
+		"noMatchingServers": "Ningún servidor coincide con los filtros actuales"
 	},
 	"NoResults": "No se encontraron resultados.",
 	"refreshing": "Actualizando",

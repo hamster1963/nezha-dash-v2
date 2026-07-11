@@ -11,7 +11,9 @@
 		"websocketConnecting": "WebSocket connecting",
 		"websocketConnected": "WebSocket connected",
 		"websocketDisconnected": "WebSocket disconnected",
-		"processing": "Processing..."
+		"processing": "Processing...",
+		"noServers": "No servers available",
+		"noMatchingServers": "No servers match the current filters"
 	},
 	"serverOverview": {
 		"totalServers": "Total Servers",

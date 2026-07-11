@@ -53,7 +53,9 @@
 		"websocketConnecting": "WebSocket подключение",
 		"websocketConnected": "WebSocket подключен",
 		"websocketDisconnected": "WebSocket отключен",
-		"processing": "Обработка..."
+		"processing": "Обработка...",
+		"noServers": "Нет доступных серверов",
+		"noMatchingServers": "Нет серверов, соответствующих текущим фильтрам"
 	},
 	"cycleTransfer": {
 		"nextUpdate": "следующее обновление",

@@ -11,6 +11,30 @@ interface WebSocketProviderProps {
 	children: React.ReactNode;
 }
 
+type RawNezhaWebsocketResponse = Omit<
+	Partial<NezhaWebsocketResponse>,
+	"servers"
+> & {
+	servers?: unknown;
+};
+
+function normalizeWebSocketResponse(data: unknown): NezhaWebsocketResponse {
+	if (!data || typeof data !== "object" || Array.isArray(data)) {
+		throw new TypeError("WebSocket message must be an object");
+	}
+
+	const response = data as RawNezhaWebsocketResponse;
+	if (typeof response.now !== "number" || !Number.isFinite(response.now)) {
+		throw new TypeError("WebSocket message must include a finite now value");
+	}
+
+	return {
+		...response,
+		now: response.now,
+		servers: Array.isArray(response.servers) ? response.servers : [],
+	};
+}
+
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 	url,
 	children,
@@ -92,7 +116,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 						throw new Error("WebSocket message data must be a string");
 					}
 
-					const newData = JSON.parse(event.data) as NezhaWebsocketResponse;
+					const newData = normalizeWebSocketResponse(JSON.parse(event.data));
 					setLastData(newData);
 					// 更新历史消息，保持最新的30条记录
 					setMessageHistory((prev) => {

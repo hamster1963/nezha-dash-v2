@@ -83,7 +83,9 @@
 		"websocketConnecting": "WebSocket verbindet",
 		"websocketConnected": "WebSocket verbunden",
 		"websocketDisconnected": "WebSocket getrennt",
-		"processing": "Verarbeiten..."
+		"processing": "Verarbeiten...",
+		"noServers": "Keine Server verfügbar",
+		"noMatchingServers": "Keine Server entsprechen den aktuellen Filtern"
 	},
 	"tabSwitch": {
 		"Network": "Netzwerk",

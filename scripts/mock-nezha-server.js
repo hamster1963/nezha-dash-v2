@@ -114,11 +114,16 @@ function updateServerMetrics() {
 }
 
 function websocketPayload() {
-	return JSON.stringify({
-		now: Date.now(),
-		online: onlineCount,
-		servers,
-	});
+	const payload = { now: Date.now() };
+
+	if (onlineCount > 0) {
+		payload.online = onlineCount;
+	}
+	if (servers.length > 0) {
+		payload.servers = servers;
+	}
+
+	return JSON.stringify(payload);
 }
 
 function jsonResponse(response, data) {
@@ -130,7 +135,7 @@ function jsonResponse(response, data) {
 	response.end(JSON.stringify(data));
 }
 
-const serverGroups = [
+const populatedServerGroups = [
 	{
 		group: {
 			id: 1,
@@ -166,12 +171,29 @@ const serverGroups = [
 						.map((server) => server.id),
 	},
 ];
+const serverGroups = serverCount === 0 ? [] : populatedServerGroups;
 
 const serviceHistory = Array.from({ length: 30 }, (_, index) => ({
 	up: 95 + (index % 6),
 	down: index % 13 === 0 ? 1 : 0,
 	delay: 20 + index * 3,
 }));
+
+const services =
+	serverCount === 0
+		? {}
+		: {
+				mock_http: {
+					service_name: "Mock HTTP",
+					current_up: 1,
+					current_down: 0,
+					total_up: 2999,
+					total_down: 1,
+					delay: serviceHistory.map((item) => item.delay),
+					up: serviceHistory.map((item) => item.up),
+					down: serviceHistory.map((item) => item.down),
+				},
+			};
 
 const httpServer = http.createServer((request, response) => {
 	const requestUrl = new URL(
@@ -213,18 +235,7 @@ const httpServer = http.createServer((request, response) => {
 			jsonResponse(response, {
 				success: true,
 				data: {
-					services: {
-						mock_http: {
-							service_name: "Mock HTTP",
-							current_up: 1,
-							current_down: 0,
-							total_up: 2999,
-							total_down: 1,
-							delay: serviceHistory.map((item) => item.delay),
-							up: serviceHistory.map((item) => item.up),
-							down: serviceHistory.map((item) => item.down),
-						},
-					},
+					services,
 					cycle_transfer_stats: {},
 				},
 			});

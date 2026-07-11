@@ -4,6 +4,7 @@ import {
 	ArrowUpIcon,
 	ChartBarSquareIcon,
 	MapIcon,
+	ServerStackIcon,
 	ViewColumnsIcon,
 } from "@heroicons/react/20/solid";
 import { useQuery } from "@tanstack/react-query";
@@ -68,6 +69,25 @@ function BackendErrorState({ error }: { error: unknown }) {
 					</p>
 				)}
 			</div>
+		</div>
+	);
+}
+
+function ServerEmptyState({ filtered = false }: { filtered?: boolean }) {
+	const { t } = useTranslation();
+
+	return (
+		<div
+			className="server-empty-state mt-6 flex min-h-52 flex-col items-center justify-center gap-2 px-4 text-center"
+			role="status"
+		>
+			<ServerStackIcon
+				aria-hidden="true"
+				className="size-7 text-stone-300 dark:text-stone-600"
+			/>
+			<p className="text-sm font-medium text-stone-500 dark:text-stone-400">
+				{t(filtered ? "info.noMatchingServers" : "info.noServers")}
+			</p>
 		</div>
 	);
 }
@@ -409,6 +429,8 @@ export default function Servers({
 		);
 	}
 
+	const hasServers = nezhaWsData.servers.length > 0;
+
 	return (
 		<div className="mx-auto w-full max-w-5xl px-0">
 			<ServerOverview
@@ -420,7 +442,10 @@ export default function Servers({
 				upSpeed={upSpeed}
 				downSpeed={downSpeed}
 			/>
-			<div className="flex mt-6 items-center justify-between gap-2 server-overview-controls">
+			<div
+				hidden={!hasServers}
+				className="flex mt-6 items-center justify-between gap-2 server-overview-controls"
+			>
 				<section className="flex items-center gap-2 w-full overflow-hidden">
 					<button
 						onClick={() => {
@@ -546,18 +571,23 @@ export default function Servers({
 					</span>
 				</div>
 			</div>
-			{showMap === "1" && (
-				<GlobalMap
-					now={nezhaWsData.now}
-					serverList={nezhaWsData?.servers || []}
-				/>
+			{hasServers && showMap === "1" && (
+				<GlobalMap now={nezhaWsData.now} serverList={nezhaWsData.servers} />
 			)}
-			{showServices === "1" && <ServiceTracker serverList={filteredServers} />}
-			<VirtualServerList
-				inline={inline === "1"}
-				now={nezhaWsData.now}
-				servers={filteredServers}
-			/>
+			{hasServers && showServices === "1" && (
+				<ServiceTracker serverList={filteredServers} />
+			)}
+			{!hasServers ? (
+				<ServerEmptyState />
+			) : filteredServers.length > 0 ? (
+				<VirtualServerList
+					inline={inline === "1"}
+					now={nezhaWsData.now}
+					servers={filteredServers}
+				/>
+			) : (
+				<ServerEmptyState filtered />
+			)}
 		</div>
 	);
 }

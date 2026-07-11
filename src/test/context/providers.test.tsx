@@ -132,7 +132,10 @@ function WebSocketProbe() {
 		<div>
 			<p>{connected ? "connected" : "disconnected"}</p>
 			<p>{lastData?.servers[0]?.name ?? "none"}</p>
-			<p>{messageHistory.length}</p>
+			<p data-testid="message-count">{messageHistory.length}</p>
+			<p data-testid="history-server-count">
+				{messageHistory.reduce((total, item) => total + item.servers.length, 0)}
+			</p>
 			<p>{needReconnect ? "needs-reconnect" : "stable"}</p>
 			<button type="button" onClick={() => setNeedReconnect(true)}>
 				mark
@@ -268,7 +271,24 @@ describe("WebSocketProvider", () => {
 		});
 
 		expect(screen.getByText("second")).toBeInTheDocument();
-		expect(screen.getByText("2")).toBeInTheDocument();
+		expect(screen.getByTestId("message-count")).toHaveTextContent("2");
+	});
+
+	it("normalizes missing and non-array server collections", () => {
+		renderWebSocketProvider(<WebSocketProbe />);
+		const socket = FakeWebSocket.instances[0];
+		const now = Date.parse("2025-01-01T00:00:20.000Z");
+
+		act(() => {
+			socket.open();
+			socket.message(JSON.stringify({ now }));
+			socket.message(JSON.stringify({ now, servers: null }));
+			socket.message(JSON.stringify({ now, servers: { invalid: true } }));
+		});
+
+		expect(screen.getByText("none")).toBeInTheDocument();
+		expect(screen.getByTestId("message-count")).toHaveTextContent("3");
+		expect(screen.getByTestId("history-server-count")).toHaveTextContent("0");
 	});
 
 	it("keeps only the latest thirty websocket messages", () => {
@@ -283,7 +303,7 @@ describe("WebSocketProvider", () => {
 		});
 
 		expect(screen.getByText("message-30")).toBeInTheDocument();
-		expect(screen.getByText("30")).toBeInTheDocument();
+		expect(screen.getByTestId("message-count")).toHaveTextContent("30");
 	});
 
 	it("ignores malformed websocket messages without disconnecting", () => {
@@ -300,10 +320,31 @@ describe("WebSocketProvider", () => {
 
 		expect(screen.getByText("connected")).toBeInTheDocument();
 		expect(screen.getByText("none")).toBeInTheDocument();
-		expect(screen.getByText("0")).toBeInTheDocument();
+		expect(screen.getByTestId("message-count")).toHaveTextContent("0");
 		expect(consoleError).toHaveBeenCalledWith(
 			"Failed to parse WebSocket message:",
 			expect.any(SyntaxError),
+		);
+	});
+
+	it("ignores websocket messages without a valid response shape", () => {
+		const consoleError = vi
+			.spyOn(console, "error")
+			.mockImplementation(() => undefined);
+		renderWebSocketProvider(<WebSocketProbe />);
+		const socket = FakeWebSocket.instances[0];
+
+		act(() => {
+			socket.open();
+			socket.message("null");
+			socket.message(JSON.stringify({ servers: [] }));
+		});
+
+		expect(screen.getByTestId("message-count")).toHaveTextContent("0");
+		expect(consoleError).toHaveBeenCalledTimes(2);
+		expect(consoleError).toHaveBeenCalledWith(
+			"Failed to parse WebSocket message:",
+			expect.any(TypeError),
 		);
 	});
 

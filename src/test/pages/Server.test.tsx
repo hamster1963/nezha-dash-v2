@@ -424,7 +424,7 @@ describe("Servers page", () => {
 		});
 	});
 
-	it("virtualizes large server lists instead of rendering every card", () => {
+	it("renders every card in large server lists without virtualization", () => {
 		const servers = Array.from({ length: 2000 }, (_, index) =>
 			createServer({ id: index + 1, name: `server-${index + 1}` }),
 		);
@@ -437,8 +437,7 @@ describe("Servers page", () => {
 		expect(screen.getByTestId("server-overview")).toHaveTextContent(
 			"2000:2000:0",
 		);
-		expect(screen.getAllByTestId("server-card").length).toBeLessThan(2000);
-		expect(screen.getAllByTestId("server-card").length).toBeGreaterThan(0);
+		expect(screen.getAllByTestId("server-card")).toHaveLength(2000);
 	});
 
 	it("toggles map and service tracker controls when service data exists", async () => {

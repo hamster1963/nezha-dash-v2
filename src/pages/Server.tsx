@@ -13,9 +13,10 @@ import { useTranslation } from "react-i18next";
 import GlobalMap from "@/components/GlobalMap";
 import GroupSwitch from "@/components/GroupSwitch";
 import { Loader } from "@/components/loading/Loader";
+import ServerCard from "@/components/ServerCard";
+import ServerCardInline from "@/components/ServerCardInline";
 import ServerOverview from "@/components/ServerOverview";
 import { ServiceTracker } from "@/components/ServiceTracker";
-import VirtualServerList from "@/components/VirtualServerList";
 import { SORT_TYPES } from "@/context/sort-context";
 import { useSort } from "@/hooks/use-sort";
 import { useStatus } from "@/hooks/use-status";
@@ -580,11 +581,27 @@ export default function Servers({
 			{!hasServers ? (
 				<ServerEmptyState />
 			) : filteredServers.length > 0 ? (
-				<VirtualServerList
-					inline={inline === "1"}
-					now={nezhaWsData.now}
-					servers={filteredServers}
-				/>
+				inline === "1" ? (
+					<section className="flex flex-col gap-2 overflow-x-scroll p-px scrollbar-hidden mt-6 server-inline-list">
+						{filteredServers.map((serverInfo) => (
+							<ServerCardInline
+								key={serverInfo.id}
+								now={nezhaWsData.now}
+								serverInfo={serverInfo}
+							/>
+						))}
+					</section>
+				) : (
+					<section className="grid grid-cols-1 gap-2 md:grid-cols-2 mt-6 server-card-list">
+						{filteredServers.map((serverInfo) => (
+							<ServerCard
+								key={serverInfo.id}
+								now={nezhaWsData.now}
+								serverInfo={serverInfo}
+							/>
+						))}
+					</section>
+				)
 			) : (
 				<ServerEmptyState filtered />
 			)}

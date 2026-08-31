@@ -1,171 +1,171 @@
 {
-  "nezha": "Pemantauan Nezha",
-  "overview": "Ikhtisar",
-  "dashboard": "Dasbor",
-  "login": "Masuk",
-  "online": "Daring",
-  "offline": "Luring",
-  "whereTheTimeIs": "Di mana waktunya",
-  "refreshing": "Menyegarkan",
-  "info": {
-    "websocketConnecting": "WebSocket menghubungkan",
-    "processing": "Memproses...",
-    "websocketDisconnected": "WebSocket terputus",
-    "websocketConnected": "WebSocket terhubung",
-    "noServers": "Tidak ada server yang tersedia",
-    "noMatchingServers": "Tidak ada server yang cocok dengan filter saat ini"
-  },
-  "serverOverview": {
-    "totalServers": "Total Server",
-    "onlineServers": "Server Daring",
-    "offlineServers": "Server Luring",
-    "speed": "Kecepatan",
-    "totalBandwidth": "Total Bandwidth",
-    "network": "Jaringan"
-  },
-  "theme": {
-    "light": "Terang",
-    "dark": "Gelap",
-    "system": "Sistem"
-  },
-  "map": {
-    "Distributions": "Server didistribusikan di",
-    "Regions": "Wilayah",
-    "Servers": "server"
-  },
-  "serverCard": {
-    "mem": "MEM",
-    "stg": "STG",
-    "days": "Hari",
-    "hours": "Jam",
-    "upload": "Unggah",
-    "download": "Unduh",
-    "system": "Sistem",
-    "uptime": "Waktu aktif",
-    "totalUpload": "Unggah",
-    "totalDownload": "Unduh"
-  },
-  "cycleTransfer": {
-    "used": "digunakan",
-    "total": "total",
-    "nextUpdate": "pembaruan berikutnya"
-  },
-  "serviceTracker": {
-    "noService": "Tidak ada data layanan",
-    "uptime": "Waktu aktif",
-    "delay": "Tunda",
-    "daysAgo": "hari yang lalu",
-    "today": "Hari ini",
-    "loading": "Memuat..."
-  },
-  "serverDetail": {
-    "status": "Status",
-    "online": "Daring",
-    "days": "Hari",
-    "hours": "Jam",
-    "offline": "Luring",
-    "unknown": "Tidak diketahui",
-    "uptime": "Waktu aktif",
-    "version": "Versi",
-    "arch": "Arsitektur",
-    "mem": "Memori",
-    "disk": "Disk",
-    "region": "Wilayah",
-    "system": "Sistem",
-    "upload": "Unggah",
-    "download": "Unduh",
-    "lastActive": "Waktu aktif terakhir",
-    "temperature": "Suhu",
-    "bootTime": "Waktu boot"
-  },
-  "serverDetailChart": {
-    "process": "Proses",
-    "disk": "Disk",
-    "mem": "Memori",
-    "swap": "Swap",
-    "upload": "Unggah",
-    "download": "Unduh",
-    "realtime": "Waktu nyata",
-    "period1d": "1 Hari",
-    "period7d": "7 Hari",
-    "period30d": "30 Hari",
-    "tsdbRequired": "Aktifkan TSDB untuk menggunakan data historis",
-    "loginRequired": "Silakan masuk untuk melihat"
-  },
-  "footer": {
-    "themeBy": "Tema oleh "
-  },
-  "language": {
-    "zh-CN": "简体中文",
-    "zh-TW": "繁體中文",
-    "en-US": "Inggris",
-    "de-DE": "Jerman",
-    "es-ES": "Spanyol",
-    "ru-RU": "Rusia",
-    "ta-IN": "Tamil"
-  },
-  "error": {
-    "pageNotFound": "Halaman tidak ditemukan",
-    "backToHome": "Kembali ke beranda",
-    "backendUnavailableTitle": "API backend tidak tersedia",
-    "backendUnavailableDescription": "Halaman masih tersedia, tetapi data tidak dapat dimuat saat ini."
-  },
-  "tabSwitch": {
-    "Detail": "Detail",
-    "Network": "Jaringan"
-  },
-  "monitor": {
-    "noData": "Tidak ada data pemantauan server, harap tambahkan pemantauan layanan terlebih dahulu",
-    "avgDelay": "Latensi",
-    "monitorCount": "Layanan",
-    "packetLoss": "Kehilangan Paket",
-    "clearSelections": "Bersihkan",
-    "peakCut": "Pemotongan puncak",
-    "loginRequired": "Silakan masuk untuk melihat",
-    "period1d": "1 Hari",
-    "period7d": "7 Hari",
-    "period30d": "30 Hari"
-  },
-  "pwa": {
-    "offlineReady": "Aplikasi siap bekerja luring",
-    "newContent": "Konten baru tersedia",
-    "reload": "Perbarui"
-  },
-  "billingInfo": {
-    "remaining": "Tersisa",
-    "error": "galat",
-    "indefinite": "Tak terbatas",
-    "expired": "Kedaluwarsa",
-    "days": "hari",
-    "price": "Harga",
-    "free": "Gratis",
-    "usage-baseed": "Berdasarkan penggunaan"
-  },
-  "TypeCommand": "Ketik perintah atau cari...",
-  "NoResults": "Tidak ada hasil ditemukan.",
-  "Servers": "Server",
-  "Shortcuts": "Jalan pintas",
-  "ToggleLightMode": "Alihkan Mode Terang",
-  "ToggleDarkMode": "Alihkan Mode Gelap",
-  "ToggleSystemMode": "Alihkan Mode Sistem",
-  "Home": "Beranda",
-  "sort": {
-    "label": "Urutkan",
-    "types": {
-      "default": "Default",
-      "name": "Nama",
-      "uptime": "Waktu aktif (uptime)",
-      "system": "Sistem",
-      "cpu": "CPU",
-      "mem": "Mem",
-      "disk": "Disk",
-      "up": "Unggah",
-      "down": "Unduh",
-      "up_total": "Total Unggah",
-      "down_total": "Total Unduh"
-    }
-  },
-  "group": {
-    "all": "Semua"
-  }
+	"nezha": "Pemantauan Nezha",
+	"overview": "Ikhtisar",
+	"dashboard": "Dasbor",
+	"login": "Masuk",
+	"online": "Daring",
+	"offline": "Luring",
+	"whereTheTimeIs": "Di mana waktunya",
+	"refreshing": "Menyegarkan",
+	"info": {
+		"websocketConnecting": "WebSocket menghubungkan",
+		"processing": "Memproses...",
+		"websocketDisconnected": "WebSocket terputus",
+		"websocketConnected": "WebSocket terhubung",
+		"noServers": "Tidak ada server yang tersedia",
+		"noMatchingServers": "Tidak ada server yang cocok dengan filter saat ini"
+	},
+	"serverOverview": {
+		"totalServers": "Total Server",
+		"onlineServers": "Server Daring",
+		"offlineServers": "Server Luring",
+		"speed": "Kecepatan",
+		"totalBandwidth": "Total Bandwidth",
+		"network": "Jaringan"
+	},
+	"theme": {
+		"light": "Terang",
+		"dark": "Gelap",
+		"system": "Sistem"
+	},
+	"map": {
+		"Distributions": "Server didistribusikan di",
+		"Regions": "Wilayah",
+		"Servers": "server"
+	},
+	"serverCard": {
+		"mem": "MEM",
+		"stg": "STG",
+		"days": "Hari",
+		"hours": "Jam",
+		"upload": "Unggah",
+		"download": "Unduh",
+		"system": "Sistem",
+		"uptime": "Waktu aktif",
+		"totalUpload": "Unggah",
+		"totalDownload": "Unduh"
+	},
+	"cycleTransfer": {
+		"used": "digunakan",
+		"total": "total",
+		"nextUpdate": "pembaruan berikutnya"
+	},
+	"serviceTracker": {
+		"noService": "Tidak ada data layanan",
+		"uptime": "Waktu aktif",
+		"delay": "Tunda",
+		"daysAgo": "hari yang lalu",
+		"today": "Hari ini",
+		"loading": "Memuat..."
+	},
+	"serverDetail": {
+		"status": "Status",
+		"online": "Daring",
+		"days": "Hari",
+		"hours": "Jam",
+		"offline": "Luring",
+		"unknown": "Tidak diketahui",
+		"uptime": "Waktu aktif",
+		"version": "Versi",
+		"arch": "Arsitektur",
+		"mem": "Memori",
+		"disk": "Disk",
+		"region": "Wilayah",
+		"system": "Sistem",
+		"upload": "Unggah",
+		"download": "Unduh",
+		"lastActive": "Waktu aktif terakhir",
+		"temperature": "Suhu",
+		"bootTime": "Waktu boot"
+	},
+	"serverDetailChart": {
+		"process": "Proses",
+		"disk": "Disk",
+		"mem": "Memori",
+		"swap": "Swap",
+		"upload": "Unggah",
+		"download": "Unduh",
+		"realtime": "Waktu nyata",
+		"period1d": "1 Hari",
+		"period7d": "7 Hari",
+		"period30d": "30 Hari",
+		"tsdbRequired": "Aktifkan TSDB untuk menggunakan data historis",
+		"loginRequired": "Silakan masuk untuk melihat"
+	},
+	"footer": {
+		"themeBy": "Tema oleh "
+	},
+	"language": {
+		"zh-CN": "简体中文",
+		"zh-TW": "繁體中文",
+		"en-US": "Inggris",
+		"de-DE": "Jerman",
+		"es-ES": "Spanyol",
+		"ru-RU": "Rusia",
+		"ta-IN": "Tamil"
+	},
+	"error": {
+		"pageNotFound": "Halaman tidak ditemukan",
+		"backToHome": "Kembali ke beranda",
+		"backendUnavailableTitle": "API backend tidak tersedia",
+		"backendUnavailableDescription": "Halaman masih tersedia, tetapi data tidak dapat dimuat saat ini."
+	},
+	"tabSwitch": {
+		"Detail": "Detail",
+		"Network": "Jaringan"
+	},
+	"monitor": {
+		"noData": "Tidak ada data pemantauan server, harap tambahkan pemantauan layanan terlebih dahulu",
+		"avgDelay": "Latensi",
+		"monitorCount": "Layanan",
+		"packetLoss": "Kehilangan Paket",
+		"clearSelections": "Bersihkan",
+		"peakCut": "Pemotongan puncak",
+		"loginRequired": "Silakan masuk untuk melihat",
+		"period1d": "1 Hari",
+		"period7d": "7 Hari",
+		"period30d": "30 Hari"
+	},
+	"pwa": {
+		"offlineReady": "Aplikasi siap bekerja luring",
+		"newContent": "Konten baru tersedia",
+		"reload": "Perbarui"
+	},
+	"billingInfo": {
+		"remaining": "Tersisa",
+		"error": "galat",
+		"indefinite": "Tak terbatas",
+		"expired": "Kedaluwarsa",
+		"days": "hari",
+		"price": "Harga",
+		"free": "Gratis",
+		"usage-baseed": "Berdasarkan penggunaan"
+	},
+	"TypeCommand": "Ketik perintah atau cari...",
+	"NoResults": "Tidak ada hasil ditemukan.",
+	"Servers": "Server",
+	"Shortcuts": "Jalan pintas",
+	"ToggleLightMode": "Alihkan Mode Terang",
+	"ToggleDarkMode": "Alihkan Mode Gelap",
+	"ToggleSystemMode": "Alihkan Mode Sistem",
+	"Home": "Beranda",
+	"sort": {
+		"label": "Urutkan",
+		"types": {
+			"default": "Default",
+			"name": "Nama",
+			"uptime": "Waktu aktif (uptime)",
+			"system": "Sistem",
+			"cpu": "CPU",
+			"mem": "Mem",
+			"disk": "Disk",
+			"up": "Unggah",
+			"down": "Unduh",
+			"up_total": "Total Unggah",
+			"down_total": "Total Unduh"
+		}
+	},
+	"group": {
+		"all": "Semua"
+	}
 }

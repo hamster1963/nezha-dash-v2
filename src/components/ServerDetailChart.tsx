@@ -274,6 +274,8 @@ export default function ServerDetailChart({
 
 	const gpuStats = server.state.gpu || [];
 	const gpuList = server.host.gpu || [];
+	// Newer agents also report memory per card, index-aligned with the above.
+	const gpuDetails = server.state.gpus || [];
 
 	return (
 		<section className="flex flex-col">
@@ -298,6 +300,7 @@ export default function ServerDetailChart({
 								now={nezhaWsData.now}
 								gpuStat={gpuStats[index]}
 								gpuName={gpu}
+								gpuMemory={gpuDetails[index]}
 								messageHistory={messageHistory}
 								period={selectedPeriod}
 								key={index}
@@ -311,6 +314,7 @@ export default function ServerDetailChart({
 									now={nezhaWsData.now}
 									gpuStat={gpu}
 									gpuName={`#${index + 1}`}
+									gpuMemory={gpuDetails[index]}
 									messageHistory={messageHistory}
 									period={selectedPeriod}
 									key={index}
@@ -426,6 +430,7 @@ function GpuChart({
 	index,
 	gpuStat,
 	gpuName,
+	gpuMemory,
 	messageHistory,
 	period,
 }: {
@@ -434,6 +439,7 @@ function GpuChart({
 	index: number;
 	gpuStat: number;
 	gpuName?: string;
+	gpuMemory?: { memory_used?: number; memory_total?: number };
 	messageHistory: NezhaWebsocketResponse[];
 	period: ChartPeriod;
 }) {
@@ -532,6 +538,14 @@ function GpuChart({
 						<section className="flex flex-col items-center gap-2">
 							{!gpuName && <p className="text-md font-medium">GPU</p>}
 							{gpuName && <p className="text-xs mt-1 mb-1.5">GPU: {gpuName}</p>}
+							{gpuMemory?.memory_total ? (
+								<p className="text-xs text-muted-foreground">
+									{gpuMemory.memory_used != null
+										? formatBytes(gpuMemory.memory_used * 1024 * 1024)
+										: "—"}{" "}
+									/ {formatBytes(gpuMemory.memory_total * 1024 * 1024)}
+								</p>
+							) : null}
 						</section>
 						<section className="flex items-center gap-2">
 							<p className="text-xs text-end w-10 font-medium">

@@ -1,167 +1,174 @@
 {
-	"nezha": "哪吒監控",
-	"overview": "概覽",
-	"dashboard": "管理後台",
-	"login": "登錄",
-	"online": "在線",
-	"offline": "離線",
-	"whereTheTimeIs": "目前時間",
-	"refreshing": "刷新中",
-	"info": {
-		"websocketConnecting": "WebSocket 連線中",
-		"websocketConnected": "WebSocket 連線成功",
-		"websocketDisconnected": "WebSocket 連線中斷",
-		"processing": "處理中...",
-		"noServers": "暫無伺服器",
-		"noMatchingServers": "沒有符合目前篩選條件的伺服器"
-	},
-	"serverOverview": {
-		"totalServers": "總伺服器",
-		"onlineServers": "線上伺服器",
-		"offlineServers": "離線伺服器",
-		"totalBandwidth": "總帶寬",
-		"speed": "速率",
-		"network": "網路"
-	},
-	"map": {
-		"Distributions": "伺服器分布在",
-		"Regions": "個區域",
-		"Servers": "個伺服器"
-	},
-	"serverCard": {
-		"mem": "內存",
-		"stg": "存儲",
-		"days": "天",
-		"hours": "小時",
-		"upload": "上傳",
-		"download": "下載",
-		"system": "系統",
-		"uptime": "運行時間",
-		"totalUpload": "總上傳",
-		"totalDownload": "總下載"
-	},
-	"cycleTransfer": {
-		"used": "已使用",
-		"total": "總量",
-		"nextUpdate": "下次更新"
-	},
-	"serviceTracker": {
-		"noService": "無服務數據",
-		"uptime": "在線率",
-		"delay": "延遲",
-		"daysAgo": "天前",
-		"today": "今天",
-		"loading": "載入中..."
-	},
-	"serverDetail": {
-		"status": "狀態",
-		"online": "線上",
-		"days": "天",
-		"hours": "小時",
-		"offline": "離線",
-		"unknown": "未知",
-		"uptime": "運行時間",
-		"version": "版本",
-		"arch": "架構",
-		"mem": "內存",
-		"disk": "磁盤",
-		"region": "地區",
-		"system": "系統",
-		"upload": "上傳",
-		"download": "下載",
-		"lastActive": "最後上報時間",
-		"temperature": "溫度",
-		"bootTime": "啟動時間"
-	},
-	"serverDetailChart": {
-		"process": "進程數",
-		"disk": "磁盤",
-		"mem": "內存",
-		"swap": "虛擬記憶體",
-		"upload": "上傳",
-		"download": "下載"
-	},
-	"footer": {
-		"themeBy": "主題-"
-	},
-	"language": {
-		"zh-CN": "简体中文",
-		"zh-TW": "繁體中文",
-		"en-US": "English",
-		"de-DE": "德文",
-		"es-ES": "西班牙文",
-		"ru-RU": "俄文",
-		"ta-IN": "தமிழ்"
-	},
-	"theme": {
-		"light": "亮色",
-		"dark": "暗色",
-		"system": "跟隨系統"
-	},
-	"error": {
-		"pageNotFound": "頁面不存在",
-		"backToHome": "回到主頁",
-		"backendUnavailableTitle": "後端 API 無法存取",
-		"backendUnavailableDescription": "頁面仍會正常顯示，但暫時無法載入監控資料。"
-	},
-	"tabSwitch": {
-		"detail": "詳細資訊",
-		"network": "網路",
-		"Detail": "詳細資訊",
-		"Network": "網路"
-	},
-	"monitor": {
-		"noData": "沒有服務監控數據，請在管理後台服務新增監控任務",
-		"status": "狀態",
-		"avgDelay": "延遲",
-		"monitorCount": "個監控",
-		"packetLoss": "丟包率",
-		"clearSelections": "清除",
-		"peakCut": "削峰",
-		"period1d": "1 天",
-		"period7d": "7 天",
-		"period30d": "30 天"
-	},
-	"billingInfo": {
-		"remaining": "剩餘天數",
-		"error": "獲取失敗",
-		"indefinite": "無限期",
-		"expired": "已過期",
-		"days": "天",
-		"price": "價格",
-		"free": "免費",
-		"usage-baseed": "按量計費"
-	},
-	"TypeCommand": "輸入命令或搜尋",
-	"NoResults": "沒有結果",
-	"Servers": "伺服器",
-	"Shortcuts": "快捷鍵",
-	"ToggleLightMode": "切換亮色模式",
-	"ToggleDarkMode": "切換暗色模式",
-	"ToggleSystemMode": "切換系統模式",
-	"Home": "首頁",
-	"pwa": {
-		"offlineReady": "可離線使用之應用程式",
-		"newContent": "有新内容可用",
-		"reload": "更新"
-	},
-	"sort": {
-		"label": "排序",
-		"types": {
-			"default": "預設",
-			"name": "名稱",
-			"uptime": "運行時間",
-			"system": "系統",
-			"cpu": "CPU",
-			"mem": "記憶體",
-			"disk": "磁碟",
-			"up": "上傳",
-			"down": "下載",
-			"up_total": "上傳總量",
-			"down_total": "下載總量"
-		}
-	},
-	"group": {
-		"all": "全部"
-	}
+  "nezha": "哪吒監控",
+  "overview": "概覽",
+  "dashboard": "管理後台",
+  "login": "登入",
+  "online": "線上",
+  "offline": "離線",
+  "whereTheTimeIs": "目前時間",
+  "refreshing": "重新整理中",
+  "info": {
+    "websocketConnecting": "WebSocket 連線中",
+    "websocketConnected": "WebSocket 連線成功",
+    "websocketDisconnected": "WebSocket 連線中斷",
+    "processing": "處理中...",
+    "noServers": "暫無伺服器",
+    "noMatchingServers": "沒有符合目前篩選條件的伺服器"
+  },
+  "serverOverview": {
+    "totalServers": "總伺服器",
+    "onlineServers": "線上伺服器",
+    "offlineServers": "離線伺服器",
+    "totalBandwidth": "總頻寬",
+    "speed": "速率",
+    "network": "網路"
+  },
+  "map": {
+    "Distributions": "伺服器分布在",
+    "Regions": "個區域",
+    "Servers": "個伺服器"
+  },
+  "serverCard": {
+    "mem": "記憶體",
+    "stg": "儲存空間",
+    "days": "天",
+    "hours": "小時",
+    "upload": "上傳",
+    "download": "下載",
+    "system": "系統",
+    "uptime": "運作時間",
+    "totalUpload": "總上傳",
+    "totalDownload": "總下載"
+  },
+  "cycleTransfer": {
+    "used": "已使用",
+    "total": "總量",
+    "nextUpdate": "下次更新"
+  },
+  "serviceTracker": {
+    "noService": "無服務資料",
+    "uptime": "上線率",
+    "delay": "延遲",
+    "daysAgo": "天前",
+    "today": "今天",
+    "loading": "載入中..."
+  },
+  "serverDetail": {
+    "status": "狀態",
+    "online": "線上",
+    "days": "天",
+    "hours": "小時",
+    "offline": "離線",
+    "unknown": "未知",
+    "uptime": "運作時間",
+    "version": "版本",
+    "arch": "架構",
+    "mem": "記憶體",
+    "disk": "磁碟",
+    "region": "地區",
+    "system": "系統",
+    "upload": "上傳",
+    "download": "下載",
+    "lastActive": "最後回報時間",
+    "temperature": "溫度",
+    "bootTime": "啟動時間"
+  },
+  "serverDetailChart": {
+    "process": "程序數",
+    "disk": "磁碟",
+    "mem": "記憶體",
+    "swap": "虛擬記憶體",
+    "upload": "上傳",
+    "download": "下載",
+    "realtime": "即時",
+    "period1d": "1 天",
+    "period7d": "7 天",
+    "period30d": "30 天",
+    "tsdbRequired": "請啟用 TSDB 以使用歷史資料",
+    "loginRequired": "請先登入才能查看"
+  },
+  "footer": {
+    "themeBy": "主題-"
+  },
+  "language": {
+    "zh-CN": "简体中文",
+    "zh-TW": "繁體中文",
+    "en-US": "English",
+    "de-DE": "德文",
+    "es-ES": "西班牙文",
+    "ru-RU": "俄文",
+    "ta-IN": "தமிழ்"
+  },
+  "theme": {
+    "light": "亮色",
+    "dark": "暗色",
+    "system": "跟隨系統"
+  },
+  "error": {
+    "pageNotFound": "頁面不存在",
+    "backToHome": "回到首頁",
+    "backendUnavailableTitle": "後端 API 無法存取",
+    "backendUnavailableDescription": "頁面仍會正常顯示，但暫時無法載入監控資料。"
+  },
+  "tabSwitch": {
+    "detail": "詳細資訊",
+    "network": "網路",
+    "Detail": "詳細資訊",
+    "Network": "網路"
+  },
+  "monitor": {
+    "noData": "沒有伺服器監控資料，請先新增服務監控",
+    "status": "狀態",
+    "avgDelay": "延遲",
+    "monitorCount": "個監控",
+    "packetLoss": "封包遺失率",
+    "clearSelections": "清除",
+    "peakCut": "削峰",
+    "period1d": "1 天",
+    "period7d": "7 天",
+    "period30d": "30 天",
+    "loginRequired": "請先登入才能查看"
+  },
+  "billingInfo": {
+    "remaining": "剩餘天數",
+    "error": "取得失敗",
+    "indefinite": "無限期",
+    "expired": "已過期",
+    "days": "天",
+    "price": "價格",
+    "free": "免費",
+    "usage-baseed": "按量計費"
+  },
+  "TypeCommand": "輸入命令或搜尋",
+  "NoResults": "沒有結果",
+  "Servers": "伺服器",
+  "Shortcuts": "快捷鍵",
+  "ToggleLightMode": "切換亮色模式",
+  "ToggleDarkMode": "切換暗色模式",
+  "ToggleSystemMode": "切換系統模式",
+  "Home": "首頁",
+  "pwa": {
+    "offlineReady": "可離線使用之應用程式",
+    "newContent": "有新內容可用",
+    "reload": "更新"
+  },
+  "sort": {
+    "label": "排序",
+    "types": {
+      "default": "預設",
+      "name": "名稱",
+      "uptime": "運作時間",
+      "system": "系統",
+      "cpu": "CPU",
+      "mem": "記憶體",
+      "disk": "磁碟",
+      "up": "上傳",
+      "down": "下載",
+      "up_total": "上傳總量",
+      "down_total": "下載總量"
+    }
+  },
+  "group": {
+    "all": "全部"
+  }
 }

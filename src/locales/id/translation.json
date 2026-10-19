@@ -108,7 +108,9 @@
 		"pageNotFound": "Halaman tidak ditemukan",
 		"backToHome": "Kembali ke beranda",
 		"backendUnavailableTitle": "API backend tidak tersedia",
-		"backendUnavailableDescription": "Halaman masih tersedia, tetapi data tidak dapat dimuat saat ini."
+		"backendUnavailableDescription": "Halaman masih tersedia, tetapi data tidak dapat dimuat saat ini.",
+		"loginRequiredTitle": "Perlu masuk",
+		"loginRequiredDescription": "Situs ini memerlukan login untuk memuat data pemantauan."
 	},
 	"tabSwitch": {
 		"Detail": "Detail",

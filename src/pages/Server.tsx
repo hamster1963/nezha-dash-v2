@@ -17,11 +17,16 @@ import ServerCard from "@/components/ServerCard";
 import ServerCardInline from "@/components/ServerCardInline";
 import ServerOverview from "@/components/ServerOverview";
 import { ServiceTracker } from "@/components/ServiceTracker";
+import { Button } from "@/components/ui/button";
 import { SORT_TYPES } from "@/context/sort-context";
 import { useSort } from "@/hooks/use-sort";
 import { useStatus } from "@/hooks/use-status";
 import { useWebSocketContext } from "@/hooks/use-websocket-context";
-import { fetchServerGroup, fetchService } from "@/lib/nezha-api";
+import {
+	fetchServerGroup,
+	fetchService,
+	isUnauthorizedError,
+} from "@/lib/nezha-api";
 import { cn } from "@/lib/utils";
 import type { NezhaServer, ServerGroup } from "@/types/nezha-api";
 
@@ -53,21 +58,36 @@ const getErrorMessage = (error: unknown) => {
 
 function BackendErrorState({ error }: { error: unknown }) {
 	const { t } = useTranslation();
+	const unauthorized = isUnauthorizedError(error);
 	const message = getErrorMessage(error);
 
 	return (
 		<div className="flex min-h-96 flex-col items-center justify-center px-4 text-center">
 			<div className="flex max-w-md flex-col items-center gap-2">
 				<p className="text-sm font-semibold text-stone-900 dark:text-stone-100">
-					{t("error.backendUnavailableTitle")}
+					{t(
+						unauthorized
+							? "error.loginRequiredTitle"
+							: "error.backendUnavailableTitle",
+					)}
 				</p>
 				<p className="text-sm text-muted-foreground">
-					{t("error.backendUnavailableDescription")}
+					{t(
+						unauthorized
+							? "error.loginRequiredDescription"
+							: "error.backendUnavailableDescription",
+					)}
 				</p>
-				{message && (
-					<p className="mt-1 max-w-full break-words rounded-md bg-stone-100 px-2 py-1 text-xs text-stone-500 dark:bg-stone-800 dark:text-stone-400">
-						{message}
-					</p>
+				{unauthorized ? (
+					<Button asChild className="mt-2">
+						<a href="/dashboard">{t("login")}</a>
+					</Button>
+				) : (
+					message && (
+						<p className="mt-1 max-w-full break-words rounded-md bg-stone-100 px-2 py-1 text-xs text-stone-500 dark:bg-stone-800 dark:text-stone-400">
+							{message}
+						</p>
+					)
 				)}
 			</div>
 		</div>

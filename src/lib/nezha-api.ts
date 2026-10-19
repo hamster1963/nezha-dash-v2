@@ -9,6 +9,14 @@ import type {
 	SettingResponse,
 } from "@/types/nezha-api";
 
+export const API_ERROR_UNAUTHORIZED = "ApiErrorUnauthorized";
+
+export function isUnauthorizedError(error: unknown): boolean {
+	const message =
+		error instanceof Error ? error.message : error == null ? "" : String(error);
+	return message === API_ERROR_UNAUTHORIZED;
+}
+
 let lastestRefreshTokenAt = 0;
 
 const getCookieValue = (name: string): string | undefined => {

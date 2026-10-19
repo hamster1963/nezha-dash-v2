@@ -115,7 +115,9 @@
 		"pageNotFound": "Page not found",
 		"backToHome": "Back to home",
 		"backendUnavailableTitle": "Backend API unavailable",
-		"backendUnavailableDescription": "The page is still available, but data cannot be loaded right now."
+		"backendUnavailableDescription": "The page is still available, but data cannot be loaded right now.",
+		"loginRequiredTitle": "Login required",
+		"loginRequiredDescription": "This site requires a login to load monitoring data."
 	},
 	"tabSwitch": {
 		"Detail": "Detail",

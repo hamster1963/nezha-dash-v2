@@ -6,6 +6,7 @@ import {
 	fetchServerMetrics,
 	fetchService,
 	fetchSetting,
+	isUnauthorizedError,
 } from "@/lib/nezha-api";
 
 const jsonResponse = (body: unknown, init?: ResponseInit) =>
@@ -50,6 +51,12 @@ describe("nezha api fetchers", () => {
 		);
 
 		await expect(fetchService()).rejects.toThrow("service unavailable");
+	});
+
+	it("detects guest-auth errors from the dashboard API", () => {
+		expect(isUnauthorizedError(new Error("ApiErrorUnauthorized"))).toBe(true);
+		expect(isUnauthorizedError(new Error("settings failed"))).toBe(false);
+		expect(isUnauthorizedError(null)).toBe(false);
 	});
 
 	it("adds monitor and metrics query parameters when periods are provided", async () => {

@@ -16,7 +16,15 @@ const apiMocks = vi.hoisted(() => ({
 	fetchService: vi.fn(),
 }));
 
-vi.mock("@/lib/nezha-api", () => apiMocks);
+vi.mock("@/lib/nezha-api", async () => {
+	const actual =
+		await vi.importActual<typeof import("@/lib/nezha-api")>("@/lib/nezha-api");
+	return {
+		...actual,
+		fetchServerGroup: apiMocks.fetchServerGroup,
+		fetchService: apiMocks.fetchService,
+	};
+});
 
 vi.mock("@/components/GlobalMap", () => ({
 	default: ({ serverList }: { serverList: NezhaServer[] }) => (
@@ -215,6 +223,32 @@ describe("Servers page", () => {
 			await screen.findByText("error.backendUnavailableTitle"),
 		).toBeInTheDocument();
 		expect(screen.getByText("group failed")).toBeInTheDocument();
+	});
+
+	it("prompts guests to log in when the API returns ApiErrorUnauthorized", async () => {
+		apiMocks.fetchServerGroup.mockRejectedValue(
+			new Error("ApiErrorUnauthorized"),
+		);
+
+		renderServerPage({
+			connected: false,
+			lastData: null,
+		});
+
+		expect(
+			await screen.findByText("error.loginRequiredTitle"),
+		).toBeInTheDocument();
+		expect(
+			screen.getByText("error.loginRequiredDescription"),
+		).toBeInTheDocument();
+		expect(screen.getByRole("link", { name: "login" })).toHaveAttribute(
+			"href",
+			"/dashboard",
+		);
+		expect(
+			screen.queryByText("error.backendUnavailableTitle"),
+		).not.toBeInTheDocument();
+		expect(screen.queryByText("ApiErrorUnauthorized")).not.toBeInTheDocument();
 	});
 
 	it("summarizes online and offline servers from websocket data", async () => {

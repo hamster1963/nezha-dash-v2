@@ -108,7 +108,9 @@
 		"pageNotFound": "Página não encontrada",
 		"backToHome": "Voltar ao inicio",
 		"backendUnavailableTitle": "API Backend indisponível",
-		"backendUnavailableDescription": "A página ainda está disponível, mas os dados não podem ser carregados agora."
+		"backendUnavailableDescription": "A página ainda está disponível, mas os dados não podem ser carregados agora.",
+		"loginRequiredTitle": "Login necessário",
+		"loginRequiredDescription": "Este site exige login para carregar os dados de monitoramento."
 	},
 	"tabSwitch": {
 		"Detail": "Detalhes",

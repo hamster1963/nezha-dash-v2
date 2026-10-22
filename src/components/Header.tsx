@@ -12,7 +12,6 @@ import { useWebSocketContext } from "@/hooks/use-websocket-context";
 import { fetchLoginUser, fetchSetting } from "@/lib/nezha-api";
 import { cn } from "@/lib/utils";
 
-import AnimateCountClient from "./AnimatedCount";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { Loader, LoadingSpinner } from "./loading/Loader";
 import NumericText from "./NumericText";
@@ -358,12 +357,18 @@ function Overview() {
 				<p className="text-sm font-medium opacity-50">{t("whereTheTimeIs")}</p>
 				{mounted ? (
 					<div className="flex items-center font-medium text-sm">
-						<AnimateCountClient count={time.hh} minDigits={2} />
+						<span className="tabular-nums">
+							{String(time.hh).padStart(2, "0")}
+						</span>
 						<span className="mb-px font-medium text-sm opacity-50">:</span>
-						<AnimateCountClient count={time.mm} minDigits={2} />
+						<span className="tabular-nums">
+							{String(time.mm).padStart(2, "0")}
+						</span>
 						<span className="mb-px font-medium text-sm opacity-50">:</span>
 						<span className="font-medium text-sm">
-							<AnimateCountClient count={time.ss} minDigits={2} />
+							<span className="tabular-nums">
+								{String(time.ss).padStart(2, "0")}
+							</span>
 						</span>
 					</div>
 				) : (

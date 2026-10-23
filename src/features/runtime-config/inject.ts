@@ -70,8 +70,20 @@ export async function InjectContext(
 					script.setAttribute(attribute.name, attribute.value);
 				script.textContent = source.textContent;
 				script.async = false;
-				if (script.src || script.type === "module")
-					await load(script, document.head);
+				const type = script.type.trim().toLowerCase();
+				const isClassic =
+					!type ||
+					/^(text|application)\/(x-)?(java|ecma)script(1\.[0-5])?$/.test(
+						type,
+					) ||
+					["text/jscript", "text/livescript"].includes(type);
+				// Browsers intentionally skip nomodule scripts when modules are supported.
+				// Data blocks/import maps also do not produce external-script load events.
+				if (script.noModule || (!isClassic && type !== "module")) {
+					append(script, document.head);
+					continue;
+				}
+				if (script.src || type === "module") await load(script, document.head);
 				else {
 					let scriptError: Error | undefined;
 					const onError = (event: ErrorEvent) => {

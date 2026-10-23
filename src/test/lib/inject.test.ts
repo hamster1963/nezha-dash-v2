@@ -103,3 +103,45 @@ describe("InjectContext", () => {
 		await rejection;
 	});
 });
+
+describe("non-executable custom scripts", () => {
+	it("does not wait for data-block scripts to emit load", async () => {
+		const cleanup = await InjectContext(
+			'<script type="application/json" src="/data.json">{}</script><style>.after-data{color:red}</style>',
+		);
+		expect(
+			document.head.querySelector('script[type="application/json"]'),
+		).toBeInTheDocument();
+		expect(document.head.querySelector("style")?.textContent).toContain(
+			"after-data",
+		);
+		cleanup();
+	});
+	it("does not wait for nomodule scripts skipped by a module-capable browser", async () => {
+		const previous = Object.getOwnPropertyDescriptor(
+			HTMLScriptElement.prototype,
+			"noModule",
+		);
+		Object.defineProperty(HTMLScriptElement.prototype, "noModule", {
+			configurable: true,
+			get() {
+				return this.hasAttribute("nomodule");
+			},
+		});
+		try {
+			const cleanup = await InjectContext(
+				'<script nomodule src="/legacy.js"></script><span id="after-legacy">Ready</span>',
+			);
+			expect(document.querySelector("#after-legacy")).toBeInTheDocument();
+			cleanup();
+		} finally {
+			if (previous)
+				Object.defineProperty(
+					HTMLScriptElement.prototype,
+					"noModule",
+					previous,
+				);
+			else Reflect.deleteProperty(HTMLScriptElement.prototype, "noModule");
+		}
+	});
+});

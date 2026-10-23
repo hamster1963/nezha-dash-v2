@@ -182,20 +182,31 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 			reconnectAttempts.current = 0;
 			connect();
 		};
-		const handleBeforeUnload = () => {
-			// A leave-page confirmation may be cancelled. Only unmount deactivates
-			// this provider; focus/online/manual recovery must remain usable.
+		const handlePageHide = () => {
+			// beforeunload can be cancelled without a subsequent focus event.
+			// Only stop the connection when the page actually leaves.
+			active.current = false;
 			cleanup();
+		};
+		const handlePageShow = () => {
+			// A bfcache restore resumes this mounted provider without rerunning
+			// its effect. Ignore the initial pageshow and duplicate notifications.
+			if (active.current) return;
+			active.current = true;
+			lastRecoveryAt.current = Number.NEGATIVE_INFINITY;
+			recover();
 		};
 		window.addEventListener("online", recover);
 		window.addEventListener("focus", recover);
-		window.addEventListener("beforeunload", handleBeforeUnload);
+		window.addEventListener("pagehide", handlePageHide);
+		window.addEventListener("pageshow", handlePageShow);
 		return () => {
 			active.current = false;
 			cleanup();
 			window.removeEventListener("online", recover);
 			window.removeEventListener("focus", recover);
-			window.removeEventListener("beforeunload", handleBeforeUnload);
+			window.removeEventListener("pagehide", handlePageHide);
+			window.removeEventListener("pageshow", handlePageShow);
 		};
 	}, [cleanup, connect]);
 

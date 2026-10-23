@@ -1,6 +1,7 @@
 import { Component, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { LazyChunkLoadError } from "@/lib/lazy-load-error";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -17,7 +18,8 @@ function ErrorFallback({
 	onRetry,
 	allowReload,
 	className,
-}: Omit<Props, "children" | "resetKey">) {
+	reloadRequired,
+}: Omit<Props, "children" | "resetKey"> & { reloadRequired: boolean }) {
 	const { t } = useTranslation();
 	return (
 		<div
@@ -34,9 +36,9 @@ function ErrorFallback({
 			</p>
 			<div className="flex flex-wrap justify-center gap-2">
 				<Button type="button" variant="outline" size="sm" onClick={onRetry}>
-					{t("error.retry")}
+					{t(reloadRequired ? "error.reloadPage" : "error.retry")}
 				</Button>
-				{allowReload && (
+				{allowReload && !reloadRequired && (
 					<Button
 						type="button"
 						variant="ghost"
@@ -51,27 +53,43 @@ function ErrorFallback({
 	);
 }
 
-class SectionBoundary extends Component<Props, { hasError: boolean }> {
-	state = { hasError: false };
+class SectionBoundary extends Component<
+	Props,
+	{ hasError: boolean; reloadRequired: boolean }
+> {
+	state = { hasError: false, reloadRequired: false };
 
-	static getDerivedStateFromError() {
-		return { hasError: true };
+	static getDerivedStateFromError(error: unknown) {
+		return {
+			hasError: true,
+			reloadRequired: error instanceof LazyChunkLoadError,
+		};
 	}
 
 	private retry = () => {
+		if (this.state.reloadRequired) {
+			window.location.reload();
+			return;
+		}
 		this.props.onRetry?.();
-		this.setState({ hasError: false });
+		this.setState({ hasError: false, reloadRequired: false });
 	};
 
 	render() {
 		if (this.state.hasError) {
-			return <ErrorFallback {...this.props} onRetry={this.retry} />;
+			return (
+				<ErrorFallback
+					{...this.props}
+					reloadRequired={this.state.reloadRequired}
+					onRetry={this.retry}
+				/>
+			);
 		}
 		return this.props.children;
 	}
 }
 
-/** Reset only this section on retry or when its navigation/data scope changes. */
+/** Retry locally unless a lazy asset failure requires a fresh document. */
 export default function LocalErrorBoundary({ resetKey, ...props }: Props) {
 	return <SectionBoundary key={resetKey} {...props} />;
 }

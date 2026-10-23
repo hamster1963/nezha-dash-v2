@@ -403,29 +403,160 @@ describe("WebSocketProvider", () => {
 		expect(FakeWebSocket.instances).toHaveLength(2);
 	});
 
-	it("cancels scheduled reconnects on unmount and before unload", () => {
+	it("cancels scheduled reconnects on unmount", () => {
 		vi.useFakeTimers();
 		const view = renderWebSocketProvider(<WebSocketProbe />);
 		act(() => FakeWebSocket.instances[0].close());
-		act(() => window.dispatchEvent(new Event("beforeunload")));
+		view.unmount();
 		act(() => vi.advanceTimersByTime(60_000));
 		expect(FakeWebSocket.instances).toHaveLength(1);
-		view.unmount();
 	});
 
-	it("can recover when navigation is cancelled after beforeunload", () => {
+	it("keeps a live socket when beforeunload navigation is cancelled without a focus event", () => {
 		vi.useFakeTimers();
 		renderWebSocketProvider(<WebSocketProbe />);
-		act(() => FakeWebSocket.instances[0].open());
-		act(() => window.dispatchEvent(new Event("beforeunload")));
-		act(() => window.dispatchEvent(new Event("focus")));
+		const socket = FakeWebSocket.instances[0];
+		act(() => socket.open());
+
+		act(() => {
+			// A dismissed confirmation does not emit pagehide or necessarily focus.
+			const event = new Event("beforeunload", { cancelable: true });
+			event.preventDefault();
+			window.dispatchEvent(event);
+			vi.advanceTimersByTime(5000);
+			socket.message(websocketPayload("still-live"));
+		});
+
+		expect(socket.readyState).toBe(FakeWebSocket.OPEN);
+		expect(FakeWebSocket.instances).toHaveLength(1);
+		expect(screen.getByText("connected")).toBeInTheDocument();
+		expect(screen.getByText("still-live")).toBeInTheDocument();
+	});
+
+	it.each([
+		"scheduled",
+		"manual",
+	])("preserves a pending %s reconnect when beforeunload is cancelled", (retry) => {
+		vi.useFakeTimers();
+		renderWebSocketProvider(<WebSocketProbe />);
+		if (retry === "scheduled") {
+			act(() => FakeWebSocket.instances[0].close());
+		} else {
+			fireEvent.click(screen.getByRole("button", { name: "reconnect" }));
+		}
+		act(() => {
+			window.dispatchEvent(new Event("beforeunload"));
+			vi.advanceTimersByTime(3000);
+		});
 		expect(FakeWebSocket.instances).toHaveLength(2);
 		act(() => FakeWebSocket.instances[1].open());
 		expect(screen.getByText("connected")).toBeInTheDocument();
-		act(() => window.dispatchEvent(new Event("beforeunload")));
+	});
+
+	it.each([
+		false,
+		true,
+	])("closes and deactivates the socket on pagehide with persisted=%s", (persisted) => {
+		vi.useFakeTimers();
+		renderWebSocketProvider(<WebSocketProbe />);
+		const socket = FakeWebSocket.instances[0];
+		act(() => socket.open());
+		act(() =>
+			window.dispatchEvent(new PageTransitionEvent("pagehide", { persisted })),
+		);
+		expect(socket.readyState).toBe(FakeWebSocket.CLOSED);
+		expect(socket.onclose).toBeNull();
+		expect(screen.getByText("disconnected")).toBeInTheDocument();
+
 		fireEvent.click(screen.getByRole("button", { name: "reconnect" }));
-		act(() => vi.advanceTimersByTime(1000));
+		act(() => {
+			window.dispatchEvent(new Event("focus"));
+			window.dispatchEvent(new Event("online"));
+			vi.advanceTimersByTime(60_000);
+		});
+		expect(FakeWebSocket.instances).toHaveLength(1);
+	});
+
+	it.each([
+		"scheduled",
+		"manual",
+	])("cancels a pending %s reconnect on pagehide", (retry) => {
+		vi.useFakeTimers();
+		renderWebSocketProvider(<WebSocketProbe />);
+		if (retry === "scheduled") {
+			act(() => FakeWebSocket.instances[0].close());
+		} else {
+			fireEvent.click(screen.getByRole("button", { name: "reconnect" }));
+		}
+		act(() => {
+			window.dispatchEvent(new PageTransitionEvent("pagehide"));
+			vi.advanceTimersByTime(60_000);
+		});
+		expect(FakeWebSocket.instances).toHaveLength(1);
+	});
+
+	it("reconnects once on each bfcache restoration without remounting or focusing", () => {
+		vi.useFakeTimers();
+		const view = renderWebSocketProvider(<WebSocketProbe />);
+		act(() => FakeWebSocket.instances[0].open());
+		act(() => window.dispatchEvent(new PageTransitionEvent("pageshow")));
+		expect(FakeWebSocket.instances).toHaveLength(1);
+
+		// Consecutive restores must not be blocked by recovery throttling.
+		for (let restore = 1; restore <= 2; restore++) {
+			act(() => {
+				window.dispatchEvent(
+					new PageTransitionEvent("pagehide", { persisted: true }),
+				);
+				window.dispatchEvent(
+					new PageTransitionEvent("pageshow", { persisted: true }),
+				);
+				window.dispatchEvent(
+					new PageTransitionEvent("pageshow", { persisted: true }),
+				);
+			});
+			expect(FakeWebSocket.instances).toHaveLength(restore + 1);
+			act(() => {
+				FakeWebSocket.instances[restore].open();
+				FakeWebSocket.instances[restore].message(
+					websocketPayload(`restored-${restore}`),
+				);
+			});
+			expect(screen.getByText("connected")).toBeInTheDocument();
+			expect(screen.getByText(`restored-${restore}`)).toBeInTheDocument();
+		}
+
+		view.unmount();
+		act(() => {
+			window.dispatchEvent(
+				new PageTransitionEvent("pageshow", { persisted: true }),
+			);
+			vi.advanceTimersByTime(60_000);
+		});
 		expect(FakeWebSocket.instances).toHaveLength(3);
+	});
+
+	it("waits for network recovery when restored from bfcache offline", () => {
+		renderWebSocketProvider(<WebSocketProbe />);
+		const online = vi.spyOn(navigator, "onLine", "get");
+		act(() => FakeWebSocket.instances[0].open());
+		act(() => {
+			window.dispatchEvent(
+				new PageTransitionEvent("pagehide", { persisted: true }),
+			);
+			online.mockReturnValue(false);
+			window.dispatchEvent(
+				new PageTransitionEvent("pageshow", { persisted: true }),
+			);
+		});
+		expect(FakeWebSocket.instances).toHaveLength(1);
+		act(() => {
+			online.mockReturnValue(true);
+			window.dispatchEvent(new Event("online"));
+		});
+		expect(FakeWebSocket.instances).toHaveLength(2);
+		act(() => FakeWebSocket.instances[1].open());
+		expect(screen.getByText("connected")).toBeInTheDocument();
 	});
 
 	it("exposes manual reconnect state separately from socket state", async () => {

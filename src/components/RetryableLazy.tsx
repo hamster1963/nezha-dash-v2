@@ -6,6 +6,7 @@ import {
 	useState,
 } from "react";
 import LocalErrorBoundary from "@/components/LocalErrorBoundary";
+import { isChunkLoadError, LazyChunkLoadError } from "@/lib/lazy-load-error";
 
 interface Props<P extends object> {
 	load: () => Promise<{ default: ComponentType<P> }>;
@@ -17,7 +18,8 @@ interface Props<P extends object> {
 }
 
 // A stable loader identifies its module across tab unmounts. Store only fulfilled
-// components, so failed imports still get a genuinely fresh attempt on retry.
+// components. Recreating React.lazy can retry a loader, but browsers may retain
+// failed module requests until the document is reloaded.
 const loadedComponents = new WeakMap<() => Promise<unknown>, unknown>();
 
 function createContent<P extends object>(
@@ -30,9 +32,14 @@ function createContent<P extends object>(
 	return (
 		loaded ??
 		lazy(async () => {
-			const module = await load();
-			loadedComponents.set(load, module.default);
-			return module;
+			try {
+				const module = await load();
+				loadedComponents.set(load, module.default);
+				return module;
+			} catch (error) {
+				if (isChunkLoadError(error)) throw new LazyChunkLoadError(error);
+				throw error;
+			}
 		})
 	);
 }
@@ -53,7 +60,7 @@ function LazySection<P extends object>({
 			title={title}
 			allowReload
 			onRetry={() => {
-				// React.lazy caches rejections. A boundary reset alone cannot retry it.
+				// Non-asset failures can retry locally with a fresh lazy identity.
 				setContent(() => createContent(load, getPreloaded));
 			}}
 		>

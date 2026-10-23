@@ -52,10 +52,15 @@ describe("local error recovery", () => {
 		expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 	});
 
-	it("creates a fresh lazy identity after rejection and actually calls the loader again", async () => {
+	it.each([
+		new Error("module initialization failed"),
+		new TypeError("Failed to fetch"),
+		new SyntaxError("Unexpected token"),
+		"loader rejected without an Error",
+	])("creates a fresh lazy identity for non-asset loader failures: %s", async (error) => {
 		const load = vi
 			.fn()
-			.mockRejectedValueOnce(new Error("chunk unavailable"))
+			.mockRejectedValueOnce(error)
 			.mockResolvedValue({ default: () => <p>chunk recovered</p> });
 		render(
 			<RetryableLazy
@@ -73,6 +78,70 @@ describe("local error recovery", () => {
 		fireEvent.click(screen.getByRole("button", { name: "error.retry" }));
 		expect(await screen.findByText("chunk recovered")).toBeInTheDocument();
 		expect(load).toHaveBeenCalledTimes(2);
+	});
+
+	it.each([
+		"Failed to fetch dynamically imported module: https://example.test/assets/ServerDetail.abc.js",
+		"error loading dynamically imported module: https://example.test/assets/ServerDetail.abc.js",
+		"Importing a module script failed.",
+		"Unable to preload CSS for /assets/ServerDetail.abc.css",
+	])("offers an explicit page reload for a cached asset rejection: %s", async (message) => {
+		const cachedRejection = new TypeError(message);
+		const load = vi.fn().mockRejectedValue(cachedRejection);
+		const reload = vi.fn();
+		vi.stubGlobal(
+			"window",
+			new Proxy(window, {
+				get: (target, key) =>
+					key === "location" ? { reload } : Reflect.get(target, key, target),
+			}),
+		);
+		render(
+			<>
+				<p>healthy shell</p>
+				<RetryableLazy
+					load={load}
+					componentProps={{}}
+					fallback={<p>loading chunk</p>}
+				/>
+			</>,
+		);
+		const shell = screen.getByText("healthy shell");
+		await screen.findByRole("alert");
+		expect(screen.getByText("healthy shell")).toBe(shell);
+		expect(screen.queryByRole("button", { name: "error.retry" })).toBeNull();
+		expect(screen.getAllByRole("button")).toHaveLength(1);
+		expect(reload).not.toHaveBeenCalled();
+		fireEvent.click(screen.getByRole("button", { name: "error.reloadPage" }));
+		expect(reload).toHaveBeenCalledTimes(1);
+		expect(load).toHaveBeenCalledTimes(1);
+		expect(screen.getByRole("alert")).toBeInTheDocument();
+		vi.unstubAllGlobals();
+	});
+
+	it("does not mistake a render or query error for an asset rejection", async () => {
+		let broken = true;
+		const Loaded = () => {
+			if (broken) {
+				throw new TypeError(
+					"Failed to fetch dynamically imported module: render data",
+				);
+			}
+			return <p>render recovered</p>;
+		};
+		const load = vi.fn().mockResolvedValue({ default: Loaded });
+		render(
+			<RetryableLazy
+				load={load}
+				componentProps={{}}
+				fallback={<p>loading chunk</p>}
+			/>,
+		);
+		await screen.findByRole("alert");
+		broken = false;
+		fireEvent.click(screen.getByRole("button", { name: "error.retry" }));
+		expect(screen.getByText("render recovered")).toBeInTheDocument();
+		expect(load).toHaveBeenCalledTimes(1);
 	});
 
 	it("uses an already loaded component synchronously and retries render errors without reloading it", () => {
@@ -122,7 +191,7 @@ describe("local error recovery", () => {
 	it("retries a rejected lazy section automatically on navigation to another server", async () => {
 		const load = vi
 			.fn()
-			.mockRejectedValueOnce(new Error("chunk unavailable"))
+			.mockRejectedValueOnce(new Error("module initialization failed"))
 			.mockResolvedValue({
 				default: ({ id }: { id: string }) => <p>server {id}</p>,
 			});

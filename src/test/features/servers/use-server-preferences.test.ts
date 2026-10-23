@@ -38,6 +38,29 @@ describe("server preferences", () => {
 			session.mockRestore();
 		}
 	});
+	it("keeps an unsaved inline choice across resize without overriding forced defaults", () => {
+		localStorage.setItem("inline", "0");
+		const write = vi
+			.spyOn(Storage.prototype, "setItem")
+			.mockImplementation(() => {
+				throw new DOMException("Quota exceeded", "QuotaExceededError");
+			});
+		try {
+			const { result } = renderHook(() => useServerPreferences(true, data));
+			act(() => result.current.toggleInline());
+			expect(result.current.inline).toBe("1");
+			act(() => window.dispatchEvent(new Event("resize")));
+			expect(result.current.inline).toBe("1");
+			expect(localStorage.getItem("inline")).toBe("0");
+			act(() => result.current.toggleInline());
+			act(() => {
+				window.ForceCardInline = true;
+			});
+			expect(result.current.inline).toBe("1");
+		} finally {
+			write.mockRestore();
+		}
+	});
 	it("round trips the existing local storage keys as string flags", () => {
 		const { result } = renderHook(() => useServerPreferences(true, null));
 		for (const [key, toggle] of [

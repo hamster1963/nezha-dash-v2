@@ -12,6 +12,7 @@ export function useServerPreferences(
 	const [desiredShowServices, setShowServices] = useState<string>("0");
 	const [showMap, setShowMap] = useState<string>("0");
 	const [inline, setInline] = useState<string>("0");
+	const unsavedInline = useRef<string | null>(null);
 	const hasRestoredScroll = useRef(false);
 	const [currentGroup, setCurrentGroup] = useState<string>("All");
 	const restoreScrollPosition = useCallback(() => {
@@ -62,6 +63,9 @@ export function useServerPreferences(
 				const inlineState = safeLocalStorage.getItem("inline");
 				if (forceCardInline) {
 					setInline("1");
+				} else if (unsavedInline.current !== null) {
+					// A failed write must not let an older stored value undo this session.
+					setInline(unsavedInline.current);
 				} else if (inlineState !== null) {
 					setInline(inlineState);
 				}
@@ -110,7 +114,9 @@ export function useServerPreferences(
 	const toggleInline = () => {
 		const value = inline === "0" ? "1" : "0";
 		setInline(value);
-		safeLocalStorage.setItem("inline", value);
+		unsavedInline.current = safeLocalStorage.setItem("inline", value)
+			? null
+			: value;
 	};
 	return {
 		showServices,

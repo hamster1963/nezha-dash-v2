@@ -106,6 +106,7 @@ export function GpuChart({
 						) : (
 							<AreaChart
 								syncId="serverDetailCharts"
+								syncMethod="value"
 								accessibilityLayer
 								data={displayData}
 								margin={{

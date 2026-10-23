@@ -90,6 +90,7 @@ export function CpuChart({
 						) : (
 							<AreaChart
 								syncId="serverDetailCharts"
+								syncMethod="value"
 								accessibilityLayer
 								data={displayData}
 								margin={{

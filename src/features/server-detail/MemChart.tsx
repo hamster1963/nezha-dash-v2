@@ -131,6 +131,7 @@ export function MemChart({
 						) : (
 							<AreaChart
 								syncId="serverDetailCharts"
+								syncMethod="value"
 								accessibilityLayer
 								data={displayData}
 								margin={{

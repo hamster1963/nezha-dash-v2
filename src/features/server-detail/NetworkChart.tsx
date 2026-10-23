@@ -123,6 +123,7 @@ export function NetworkChart({
 						) : (
 							<LineChart
 								syncId="serverDetailCharts"
+								syncMethod="value"
 								accessibilityLayer
 								data={displayData}
 								margin={{

@@ -94,6 +94,7 @@ export function ConnectChart({
 						) : (
 							<LineChart
 								syncId="serverDetailCharts"
+								syncMethod="value"
 								accessibilityLayer
 								data={displayData}
 								margin={{

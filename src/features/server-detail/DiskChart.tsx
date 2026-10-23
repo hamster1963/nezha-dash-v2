@@ -110,6 +110,7 @@ export function DiskChart({
 						) : (
 							<AreaChart
 								syncId="serverDetailCharts"
+								syncMethod="value"
 								accessibilityLayer
 								data={displayData}
 								margin={{

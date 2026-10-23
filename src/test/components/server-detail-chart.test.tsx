@@ -24,12 +24,15 @@ vi.mock("recharts", () => {
 			children,
 			data,
 			dataKey,
+			syncMethod,
 		}: {
 			children?: ReactNode;
 			data?: unknown[];
 			dataKey?: string;
+			syncMethod?: string;
 		}) => (
 			<div
+				data-sync-method={syncMethod}
 				data-key={dataKey}
 				data-points={data?.length}
 				data-series={data ? JSON.stringify(data) : undefined}
@@ -399,6 +402,28 @@ describe("ServerDetailChart", () => {
 		expect(chartSeries("cpu").some((point) => point.cpu === 88)).toBe(false);
 	});
 
+	it("synchronizes by timestamp when a GPU has a shorter history", () => {
+		seedWebSocketData();
+		const payload = detailChartMocks.lastData;
+		if (!payload) throw new Error("Expected seeded websocket payload");
+		payload.servers[0].state.gpu = [0, 42];
+		payload.servers[0].host.gpu = ["First", "New GPU"];
+		renderWithQuery(<ServerDetailChart server_id="7" />);
+		const charts = [
+			...screen.getAllByTestId("area-chart"),
+			...screen.getAllByTestId("line-chart"),
+		];
+		for (const chart of charts)
+			expect(chart).toHaveAttribute("data-sync-method", "value");
+		const gpuCharts = screen
+			.getAllByTestId("area")
+			.filter((node) => node.getAttribute("data-key") === "gpu")
+			.map((node) => node.closest('[data-testid="area-chart"]'));
+		const newest = JSON.parse(
+			gpuCharts[1]?.getAttribute("data-series") ?? "[]",
+		);
+		expect(newest).toEqual([{ timeStamp: String(payload.now), gpu: 42 }]);
+	});
 	it("renders current samples even when websocket history is empty", () => {
 		seedWebSocketData();
 		detailChartMocks.messageHistory = [];

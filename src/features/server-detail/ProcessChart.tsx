@@ -91,6 +91,7 @@ export function ProcessChart({
 						) : (
 							<AreaChart
 								syncId="serverDetailCharts"
+								syncMethod="value"
 								accessibilityLayer
 								data={displayData}
 								margin={{

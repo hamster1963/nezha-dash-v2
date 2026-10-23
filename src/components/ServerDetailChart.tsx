@@ -356,8 +356,11 @@ function useHistoricalData<T>(
 	const [displayData, setDisplayData] = useState<T[]>([]);
 	const [loadedPeriod, setLoadedPeriod] = useState<ChartPeriod>("realtime");
 
+	const [failedPeriod, setFailedPeriod] = useState<ChartPeriod | null>(null);
+
 	useEffect(() => {
 		let cancelled = false;
+		setFailedPeriod(null);
 
 		if (period === "realtime") {
 			setHistoricalData([]);
@@ -372,6 +375,8 @@ function useHistoricalData<T>(
 		const fetchData = async () => {
 			const loadingStartedAt = Date.now();
 			setIsLoading(true);
+			setHistoricalData([]);
+			setDisplayData([]);
 
 			try {
 				const response = await fetchServerMetrics(
@@ -386,9 +391,13 @@ function useHistoricalData<T>(
 					if (!cancelled) {
 						setHistoricalData(transformedData);
 						setDisplayData(transformedData);
+						setLoadedPeriod(period);
 					}
+				} else {
+					if (!cancelled) setFailedPeriod(period);
 				}
 			} catch (error) {
+				if (!cancelled) setFailedPeriod(period);
 				console.error(`Failed to fetch ${metricName} metrics:`, error);
 			} finally {
 				const elapsed = Date.now() - loadingStartedAt;
@@ -397,7 +406,6 @@ function useHistoricalData<T>(
 				}
 				if (!cancelled) {
 					setIsLoading(false);
-					setLoadedPeriod(period);
 				}
 			}
 		};
@@ -409,12 +417,14 @@ function useHistoricalData<T>(
 	}, [serverId, metricName, period, transformData]);
 
 	const isHistoricalLoading =
-		period !== "realtime" && (isLoading || loadedPeriod !== period);
+		period !== "realtime" &&
+		(isLoading || (loadedPeriod !== period && failedPeriod !== period));
 
 	return { historicalData, displayData, isLoading: isHistoricalLoading };
 }
 
 function GpuChart({
+	now,
 	id,
 	index,
 	gpuStat,
@@ -452,13 +462,17 @@ function GpuChart({
 	const { displayData: gpuHistoricalData, isLoading } =
 		useHistoricalData<gpuChartData>(id, "gpu", period, transformGpuData);
 
+	// Reset when switching to realtime
+	useEffect(() => {
+		if (period === "realtime") {
+			hasInitialized.current = false;
+			setHistoryLoaded(false);
+		}
+	}, [period]);
+
 	// 初始化历史数据
 	useEffect(() => {
-		if (
-			period === "realtime" &&
-			!hasInitialized.current &&
-			messageHistory.length > 0
-		) {
+		if (period === "realtime" && !hasInitialized.current) {
 			const historyData = messageHistory
 				.map((wsData) => {
 					const server = wsData.servers.find((s) => s.id === id);
@@ -478,17 +492,9 @@ function GpuChart({
 		}
 	}, [messageHistory, id, index, period]);
 
-	// Reset when switching to realtime
 	useEffect(() => {
-		if (period === "realtime") {
-			hasInitialized.current = false;
-			setHistoryLoaded(false);
-		}
-	}, [period]);
-
-	useEffect(() => {
-		if (gpuStat && historyLoaded && period === "realtime") {
-			const timestamp = Date.now().toString();
+		if (Number.isFinite(gpuStat) && historyLoaded && period === "realtime") {
+			const timestamp = now.toString();
 			setGpuChartData((prevData) => {
 				let newData = [] as gpuChartData[];
 				if (prevData.length === 0) {
@@ -505,7 +511,7 @@ function GpuChart({
 				return newData;
 			});
 		}
-	}, [gpuStat, historyLoaded, period]);
+	}, [now, gpuStat, historyLoaded, period]);
 
 	const chartConfig = {
 		gpu: {
@@ -655,13 +661,17 @@ function CpuChart({
 	const { displayData: cpuHistoricalData, isLoading } =
 		useHistoricalData<cpuChartData>(data.id, "cpu", period, transformCpuData);
 
+	// Reset when switching to realtime
+	useEffect(() => {
+		if (period === "realtime") {
+			hasInitialized.current = false;
+			setHistoryLoaded(false);
+		}
+	}, [period]);
+
 	// 初始化历史数据
 	useEffect(() => {
-		if (
-			period === "realtime" &&
-			!hasInitialized.current &&
-			messageHistory.length > 0
-		) {
+		if (period === "realtime" && !hasInitialized.current) {
 			const historyData = messageHistory
 				.map((wsData) => {
 					const server = wsData.servers.find((s) => s.id === data.id);
@@ -681,18 +691,10 @@ function CpuChart({
 		}
 	}, [messageHistory, data.id, period]);
 
-	// Reset when switching to realtime
-	useEffect(() => {
-		if (period === "realtime") {
-			hasInitialized.current = false;
-			setHistoryLoaded(false);
-		}
-	}, [period]);
-
 	// 更新实时数据
 	useEffect(() => {
 		if (data && historyLoaded && period === "realtime") {
-			const timestamp = Date.now().toString();
+			const timestamp = now.toString();
 			setCpuChartData((prevData) => {
 				let newData = [] as cpuChartData[];
 				if (prevData.length === 0) {
@@ -709,7 +711,7 @@ function CpuChart({
 				return newData;
 			});
 		}
-	}, [data, historyLoaded, cpu, period]);
+	}, [now, data, historyLoaded, cpu, period]);
 
 	const chartConfig = {
 		cpu: {
@@ -856,13 +858,17 @@ function ProcessChart({
 			transformProcessData,
 		);
 
+	// Reset when switching to realtime
+	useEffect(() => {
+		if (period === "realtime") {
+			hasInitialized.current = false;
+			setHistoryLoaded(false);
+		}
+	}, [period]);
+
 	// 初始化历史数据
 	useEffect(() => {
-		if (
-			period === "realtime" &&
-			!hasInitialized.current &&
-			messageHistory.length > 0
-		) {
+		if (period === "realtime" && !hasInitialized.current) {
 			const historyData = messageHistory
 				.map((wsData) => {
 					const server = wsData.servers.find((s) => s.id === data.id);
@@ -882,18 +888,10 @@ function ProcessChart({
 		}
 	}, [messageHistory, data.id, period]);
 
-	// Reset when switching to realtime
-	useEffect(() => {
-		if (period === "realtime") {
-			hasInitialized.current = false;
-			setHistoryLoaded(false);
-		}
-	}, [period]);
-
 	// 修改实时数据更新逻辑
 	useEffect(() => {
 		if (data && historyLoaded && period === "realtime") {
-			const timestamp = Date.now().toString();
+			const timestamp = now.toString();
 			setProcessChartData((prevData) => {
 				let newData = [] as processChartData[];
 				if (prevData.length === 0) {
@@ -910,7 +908,7 @@ function ProcessChart({
 				return newData;
 			});
 		}
-	}, [data, historyLoaded, process, period]);
+	}, [now, data, historyLoaded, process, period]);
 
 	const chartConfig = {
 		process: {
@@ -1041,8 +1039,13 @@ function MemChart({
 	const [loadedPeriodMem, setLoadedPeriodMem] =
 		useState<ChartPeriod>("realtime");
 
+	const [failedPeriodMem, setFailedPeriodMem] = useState<ChartPeriod | null>(
+		null,
+	);
+
 	useEffect(() => {
 		let cancelled = false;
+		setFailedPeriodMem(null);
 
 		if (period === "realtime") {
 			setMemHistoricalData([]);
@@ -1056,13 +1059,19 @@ function MemChart({
 		const fetchMemData = async () => {
 			const loadingStartedAt = Date.now();
 			setIsLoadingMem(true);
+			setMemHistoricalData([]);
 			try {
 				const [memResponse, swapResponse] = await Promise.all([
 					fetchServerMetrics(data.id, "memory", period as MetricPeriod),
 					fetchServerMetrics(data.id, "swap", period as MetricPeriod),
 				]);
 
-				if (memResponse.success && memResponse.data?.data_points) {
+				if (
+					memResponse.success &&
+					memResponse.data?.data_points &&
+					swapResponse.success &&
+					swapResponse.data?.data_points
+				) {
 					const swapMap = new Map<number, number>();
 					if (swapResponse.success && swapResponse.data?.data_points) {
 						for (const point of swapResponse.data.data_points) {
@@ -1089,9 +1098,13 @@ function MemChart({
 					});
 					if (!cancelled) {
 						setMemHistoricalData(combinedData);
+						setLoadedPeriodMem(period);
 					}
+				} else {
+					if (!cancelled) setFailedPeriodMem(period);
 				}
 			} catch (error) {
+				if (!cancelled) setFailedPeriodMem(period);
 				console.error("Failed to fetch memory metrics:", error);
 			} finally {
 				const elapsed = Date.now() - loadingStartedAt;
@@ -1100,7 +1113,6 @@ function MemChart({
 				}
 				if (!cancelled) {
 					setIsLoadingMem(false);
-					setLoadedPeriodMem(period);
 				}
 			}
 		};
@@ -1111,13 +1123,17 @@ function MemChart({
 		};
 	}, [data.id, period, data.host.mem_total, data.host.swap_total]);
 
+	// Reset when switching to realtime
+	useEffect(() => {
+		if (period === "realtime") {
+			hasInitialized.current = false;
+			setHistoryLoaded(false);
+		}
+	}, [period]);
+
 	// 初始化历史数据
 	useEffect(() => {
-		if (
-			period === "realtime" &&
-			!hasInitialized.current &&
-			messageHistory.length > 0
-		) {
+		if (period === "realtime" && !hasInitialized.current) {
 			const historyData = messageHistory
 				.map((wsData) => {
 					const server = wsData.servers.find((s) => s.id === data.id);
@@ -1138,18 +1154,10 @@ function MemChart({
 		}
 	}, [messageHistory, data.id, period]);
 
-	// Reset when switching to realtime
-	useEffect(() => {
-		if (period === "realtime") {
-			hasInitialized.current = false;
-			setHistoryLoaded(false);
-		}
-	}, [period]);
-
 	// 修改实时数据更新逻辑
 	useEffect(() => {
 		if (data && historyLoaded && period === "realtime") {
-			const timestamp = Date.now().toString();
+			const timestamp = now.toString();
 			setMemChartData((prevData) => {
 				let newData = [] as memChartData[];
 				if (prevData.length === 0) {
@@ -1166,7 +1174,7 @@ function MemChart({
 				return newData;
 			});
 		}
-	}, [data, historyLoaded, mem, swap, period]);
+	}, [now, data, historyLoaded, mem, swap, period]);
 
 	const chartConfig = {
 		mem: {
@@ -1179,7 +1187,9 @@ function MemChart({
 
 	const displayData = period === "realtime" ? memChartData : memHistoricalData;
 	const isMemLoading =
-		period !== "realtime" && (isLoadingMem || loadedPeriodMem !== period);
+		period !== "realtime" &&
+		(isLoadingMem ||
+			(loadedPeriodMem !== period && failedPeriodMem !== period));
 
 	return (
 		<Card
@@ -1372,13 +1382,17 @@ function DiskChart({
 			transformDiskData,
 		);
 
+	// Reset when switching to realtime
+	useEffect(() => {
+		if (period === "realtime") {
+			hasInitialized.current = false;
+			setHistoryLoaded(false);
+		}
+	}, [period]);
+
 	// 初始化历史数据
 	useEffect(() => {
-		if (
-			period === "realtime" &&
-			!hasInitialized.current &&
-			messageHistory.length > 0
-		) {
+		if (period === "realtime" && !hasInitialized.current) {
 			const historyData = messageHistory
 				.map((wsData) => {
 					const server = wsData.servers.find((s) => s.id === data.id);
@@ -1398,18 +1412,10 @@ function DiskChart({
 		}
 	}, [messageHistory, data.id, period]);
 
-	// Reset when switching to realtime
-	useEffect(() => {
-		if (period === "realtime") {
-			hasInitialized.current = false;
-			setHistoryLoaded(false);
-		}
-	}, [period]);
-
 	// 修改实时数据更新逻辑
 	useEffect(() => {
 		if (data && historyLoaded && period === "realtime") {
-			const timestamp = Date.now().toString();
+			const timestamp = now.toString();
 			setDiskChartData((prevData) => {
 				let newData = [] as diskChartData[];
 				if (prevData.length === 0) {
@@ -1426,7 +1432,7 @@ function DiskChart({
 				return newData;
 			});
 		}
-	}, [data, historyLoaded, disk, period]);
+	}, [now, data, historyLoaded, disk, period]);
 
 	const chartConfig = {
 		disk: {
@@ -1574,8 +1580,12 @@ function NetworkChart({
 	const [loadedPeriodNetwork, setLoadedPeriodNetwork] =
 		useState<ChartPeriod>("realtime");
 
+	const [failedPeriodNetwork, setFailedPeriodNetwork] =
+		useState<ChartPeriod | null>(null);
+
 	useEffect(() => {
 		let cancelled = false;
+		setFailedPeriodNetwork(null);
 
 		if (period === "realtime") {
 			setNetworkHistoricalData([]);
@@ -1589,13 +1599,19 @@ function NetworkChart({
 		const fetchNetworkData = async () => {
 			const loadingStartedAt = Date.now();
 			setIsLoadingNetwork(true);
+			setNetworkHistoricalData([]);
 			try {
 				const [uploadResponse, downloadResponse] = await Promise.all([
 					fetchServerMetrics(data.id, "net_out_speed", period as MetricPeriod),
 					fetchServerMetrics(data.id, "net_in_speed", period as MetricPeriod),
 				]);
 
-				if (uploadResponse.success && uploadResponse.data?.data_points) {
+				if (
+					uploadResponse.success &&
+					uploadResponse.data?.data_points &&
+					downloadResponse.success &&
+					downloadResponse.data?.data_points
+				) {
 					const downloadMap = new Map<number, number>();
 					if (downloadResponse.success && downloadResponse.data?.data_points) {
 						for (const point of downloadResponse.data.data_points) {
@@ -1611,9 +1627,13 @@ function NetworkChart({
 					}));
 					if (!cancelled) {
 						setNetworkHistoricalData(combinedData);
+						setLoadedPeriodNetwork(period);
 					}
+				} else {
+					if (!cancelled) setFailedPeriodNetwork(period);
 				}
 			} catch (error) {
+				if (!cancelled) setFailedPeriodNetwork(period);
 				console.error("Failed to fetch network metrics:", error);
 			} finally {
 				const elapsed = Date.now() - loadingStartedAt;
@@ -1622,7 +1642,6 @@ function NetworkChart({
 				}
 				if (!cancelled) {
 					setIsLoadingNetwork(false);
-					setLoadedPeriodNetwork(period);
 				}
 			}
 		};
@@ -1633,13 +1652,17 @@ function NetworkChart({
 		};
 	}, [data.id, period]);
 
+	// Reset when switching to realtime
+	useEffect(() => {
+		if (period === "realtime") {
+			hasInitialized.current = false;
+			setHistoryLoaded(false);
+		}
+	}, [period]);
+
 	// 初始化历史数据
 	useEffect(() => {
-		if (
-			period === "realtime" &&
-			!hasInitialized.current &&
-			messageHistory.length > 0
-		) {
+		if (period === "realtime" && !hasInitialized.current) {
 			const historyData = messageHistory
 				.map((wsData) => {
 					const server = wsData.servers.find((s) => s.id === data.id);
@@ -1660,18 +1683,10 @@ function NetworkChart({
 		}
 	}, [messageHistory, data.id, period]);
 
-	// Reset when switching to realtime
-	useEffect(() => {
-		if (period === "realtime") {
-			hasInitialized.current = false;
-			setHistoryLoaded(false);
-		}
-	}, [period]);
-
 	// 修改实时数据更新逻辑
 	useEffect(() => {
 		if (data && historyLoaded && period === "realtime") {
-			const timestamp = Date.now().toString();
+			const timestamp = now.toString();
 			setNetworkChartData((prevData) => {
 				let newData = [] as networkChartData[];
 				if (prevData.length === 0) {
@@ -1691,13 +1706,14 @@ function NetworkChart({
 				return newData;
 			});
 		}
-	}, [data, historyLoaded, down, up, period]);
+	}, [now, data, historyLoaded, down, up, period]);
 
 	const displayData =
 		period === "realtime" ? networkChartData : networkHistoricalData;
 	const isNetworkLoading =
 		period !== "realtime" &&
-		(isLoadingNetwork || loadedPeriodNetwork !== period);
+		(isLoadingNetwork ||
+			(loadedPeriodNetwork !== period && failedPeriodNetwork !== period));
 
 	let maxDownload = Math.max(...displayData.map((item) => item.download));
 	maxDownload = Math.ceil(maxDownload);
@@ -1880,8 +1896,12 @@ function ConnectChart({
 	const [loadedPeriodConnect, setLoadedPeriodConnect] =
 		useState<ChartPeriod>("realtime");
 
+	const [failedPeriodConnect, setFailedPeriodConnect] =
+		useState<ChartPeriod | null>(null);
+
 	useEffect(() => {
 		let cancelled = false;
+		setFailedPeriodConnect(null);
 
 		if (period === "realtime") {
 			setConnectHistoricalData([]);
@@ -1895,13 +1915,19 @@ function ConnectChart({
 		const fetchConnectData = async () => {
 			const loadingStartedAt = Date.now();
 			setIsLoadingConnect(true);
+			setConnectHistoricalData([]);
 			try {
 				const [tcpResponse, udpResponse] = await Promise.all([
 					fetchServerMetrics(data.id, "tcp_conn", period as MetricPeriod),
 					fetchServerMetrics(data.id, "udp_conn", period as MetricPeriod),
 				]);
 
-				if (tcpResponse.success && tcpResponse.data?.data_points) {
+				if (
+					tcpResponse.success &&
+					tcpResponse.data?.data_points &&
+					udpResponse.success &&
+					udpResponse.data?.data_points
+				) {
 					const udpMap = new Map<number, number>();
 					if (udpResponse.success && udpResponse.data?.data_points) {
 						for (const point of udpResponse.data.data_points) {
@@ -1916,9 +1942,13 @@ function ConnectChart({
 					}));
 					if (!cancelled) {
 						setConnectHistoricalData(combinedData);
+						setLoadedPeriodConnect(period);
 					}
+				} else {
+					if (!cancelled) setFailedPeriodConnect(period);
 				}
 			} catch (error) {
+				if (!cancelled) setFailedPeriodConnect(period);
 				console.error("Failed to fetch connection metrics:", error);
 			} finally {
 				const elapsed = Date.now() - loadingStartedAt;
@@ -1927,7 +1957,6 @@ function ConnectChart({
 				}
 				if (!cancelled) {
 					setIsLoadingConnect(false);
-					setLoadedPeriodConnect(period);
 				}
 			}
 		};
@@ -1938,13 +1967,17 @@ function ConnectChart({
 		};
 	}, [data.id, period]);
 
+	// Reset when switching to realtime
+	useEffect(() => {
+		if (period === "realtime") {
+			hasInitialized.current = false;
+			setHistoryLoaded(false);
+		}
+	}, [period]);
+
 	// 初始化历史数据
 	useEffect(() => {
-		if (
-			period === "realtime" &&
-			!hasInitialized.current &&
-			messageHistory.length > 0
-		) {
+		if (period === "realtime" && !hasInitialized.current) {
 			const historyData = messageHistory
 				.map((wsData) => {
 					const server = wsData.servers.find((s) => s.id === data.id);
@@ -1965,18 +1998,10 @@ function ConnectChart({
 		}
 	}, [messageHistory, data.id, period]);
 
-	// Reset when switching to realtime
-	useEffect(() => {
-		if (period === "realtime") {
-			hasInitialized.current = false;
-			setHistoryLoaded(false);
-		}
-	}, [period]);
-
 	// 修改实时数据更新逻辑
 	useEffect(() => {
 		if (data && historyLoaded && period === "realtime") {
-			const timestamp = Date.now().toString();
+			const timestamp = now.toString();
 			setConnectChartData((prevData) => {
 				let newData = [] as connectChartData[];
 				if (prevData.length === 0) {
@@ -1993,7 +2018,7 @@ function ConnectChart({
 				return newData;
 			});
 		}
-	}, [data, historyLoaded, tcp, udp, period]);
+	}, [now, data, historyLoaded, tcp, udp, period]);
 
 	const chartConfig = {
 		tcp: {
@@ -2008,7 +2033,8 @@ function ConnectChart({
 		period === "realtime" ? connectChartData : connectHistoricalData;
 	const isConnectLoading =
 		period !== "realtime" &&
-		(isLoadingConnect || loadedPeriodConnect !== period);
+		(isLoadingConnect ||
+			(loadedPeriodConnect !== period && failedPeriodConnect !== period));
 
 	return (
 		<Card

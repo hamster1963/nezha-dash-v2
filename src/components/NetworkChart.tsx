@@ -150,7 +150,7 @@ export function NetworkChart({
 
 	if (!monitorData) return <NetworkChartLoading />;
 
-	if (monitorData?.success && !monitorData.data) {
+	if (!monitorData.success || !monitorData.data?.length) {
 		return (
 			<>
 				<div className="flex flex-col items-center justify-center">
@@ -292,7 +292,14 @@ export const NetworkChartClient = React.memo(function NetworkChart({
 	const forcePeakCutEnabled = (window.ForcePeakCutEnabled as boolean) ?? false;
 
 	// Change from string to string array for multi-selection
-	const [activeCharts, setActiveCharts] = React.useState<string[]>([]);
+	const [selectedCharts, setActiveCharts] = React.useState<string[]>([]);
+	const activeCharts = useMemo(
+		() =>
+			selectedCharts.filter(
+				(key) => chartDataKey.includes(key) && chartData[key],
+			),
+		[selectedCharts, chartDataKey, chartData],
+	);
 	const [isPeakEnabled, setIsPeakEnabled] = React.useState(forcePeakCutEnabled);
 
 	// Function to clear all selected charts
@@ -341,8 +348,8 @@ export const NetworkChartClient = React.memo(function NetworkChart({
 	const chartButtons = useMemo(
 		() =>
 			chartDataKey.map((key) => {
-				const monitorData = chartData[key];
-				const lastDelay = monitorData[monitorData.length - 1].avg_delay;
+				const monitorData = chartData[key] ?? [];
+				const lastDelay = monitorData[monitorData.length - 1]?.avg_delay;
 				const stats = chartStats[key];
 
 				// Calculate average packet loss if available
@@ -370,7 +377,7 @@ export const NetworkChartClient = React.memo(function NetworkChart({
 						</span>
 						<div className="flex flex-col gap-0.5">
 							<span className="text-md font-semibold leading-none sm:text-xl">
-								{lastDelay.toFixed(2)}ms
+								{lastDelay === undefined ? "—" : `${lastDelay.toFixed(2)}ms`}
 							</span>
 							<div className="flex items-center gap-2 text-[12px]">
 								<span className="text-green-600 dark:text-green-400">

@@ -30,7 +30,12 @@ vi.mock("recharts", () => {
 			data?: unknown[];
 			dataKey?: string;
 		}) => (
-			<div data-key={dataKey} data-points={data?.length} data-testid={testId}>
+			<div
+				data-key={dataKey}
+				data-points={data?.length}
+				data-series={data ? JSON.stringify(data) : undefined}
+				data-testid={testId}
+			>
 				{children}
 			</div>
 		);
@@ -164,15 +169,32 @@ describe("NetworkChart", () => {
 		expect(apiMocks.fetchMonitor).not.toHaveBeenCalled();
 	});
 
-	it("renders the no-data state from the monitor API", async () => {
+	it.each([
+		null,
+		[],
+	])("renders the no-data state for %j from the monitor API", async (data) => {
 		apiMocks.fetchMonitor.mockResolvedValue({
 			success: true,
-			data: null,
+			data,
 		});
 
 		renderWithQuery(<NetworkChart server_id={7} show={true} />);
 
 		expect(await screen.findByText("monitor.noData")).toBeInTheDocument();
+	});
+
+	it("renders monitors with no samples without inventing a current delay", async () => {
+		apiMocks.fetchMonitor.mockResolvedValue({
+			success: true,
+			data: [{ ...monitorData[0], created_at: [], avg_delay: [] }],
+		});
+		renderWithQuery(<NetworkChart server_id={7} show={true} />);
+		expect(await screen.findByText("Beta")).toBeInTheDocument();
+		expect(screen.getByText("—")).toBeInTheDocument();
+		expect(screen.getByTestId("composed-chart")).toHaveAttribute(
+			"data-series",
+			"[]",
+		);
 	});
 
 	it("fetches monitor data, transforms chart series, and allows logged-in period changes", async () => {
@@ -250,6 +272,45 @@ describe("NetworkChartClient", () => {
 		expect(
 			screen.queryByRole("button", { name: /monitor.clearSelections/ }),
 		).not.toBeInTheDocument();
+	});
+
+	it("drops a removed monitor from active selection when new data arrives", async () => {
+		const props = {
+			chartDataKey: ["Alpha", "Beta"],
+			chartConfig,
+			chartData: clientChartData,
+			serverName: "edge-client",
+			formattedData: clientFormattedData,
+			isPeriodLoading: false,
+			period: "1d" as const,
+			onPeriodChange: vi.fn(),
+			isLogin: true,
+		};
+		const { rerender } = render(<NetworkChartClient {...props} />);
+		await userEvent.setup().click(screen.getByText("Alpha"));
+		const remainingData = clientFormattedData.map(
+			({ created_at, Beta, Beta_packet_loss }) => ({
+				created_at,
+				Beta,
+				Beta_packet_loss,
+			}),
+		);
+		rerender(
+			<NetworkChartClient
+				{...props}
+				chartDataKey={["Beta"]}
+				chartData={{ Beta: clientChartData.Beta }}
+				formattedData={remainingData}
+			/>,
+		);
+		expect(screen.queryByText("Alpha")).not.toBeInTheDocument();
+		expect(
+			screen.queryByRole("button", { name: /monitor.clearSelections/ }),
+		).not.toBeInTheDocument();
+		expect(screen.getByTestId("composed-chart")).toHaveAttribute(
+			"data-series",
+			JSON.stringify(remainingData),
+		);
 	});
 
 	it("shows period loading and honors the forced peak-cut global", async () => {

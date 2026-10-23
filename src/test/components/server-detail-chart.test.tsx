@@ -29,7 +29,12 @@ vi.mock("recharts", () => {
 			data?: unknown[];
 			dataKey?: string;
 		}) => (
-			<div data-key={dataKey} data-points={data?.length} data-testid={testId}>
+			<div
+				data-key={dataKey}
+				data-points={data?.length}
+				data-series={data ? JSON.stringify(data) : undefined}
+				data-testid={testId}
+			>
 				{children}
 			</div>
 		);
@@ -184,6 +189,13 @@ function seedWebSocketData() {
 	);
 }
 
+function chartSeries(key: string): Record<string, number | string>[] {
+	const mark = document.querySelector(`[data-key="${key}"]`);
+	const chart = mark?.closest("[data-series]");
+	expect(chart, `chart for ${key}`).not.toBeNull();
+	return JSON.parse(chart?.getAttribute("data-series") ?? "[]");
+}
+
 describe("ServerDetailChart", () => {
 	beforeEach(() => {
 		detailChartMocks.connected = true;
@@ -284,5 +296,155 @@ describe("ServerDetailChart", () => {
 				);
 			});
 		}
+	});
+	it("uses websocket timestamps for zero GPU and consecutive unchanged samples", async () => {
+		seedWebSocketData();
+		const payload = detailChartMocks.lastData;
+		if (!payload) throw new Error("Expected seeded websocket payload");
+		const server = payload.servers[0];
+		server.state.gpu = [0];
+		const client = createTestQueryClient();
+		const ui = () => (
+			<QueryClientProvider client={client}>
+				<ServerDetailChart server_id="7" />
+			</QueryClientProvider>
+		);
+		const { rerender } = render(ui());
+		const firstNow = payload.now;
+		const values = {
+			cpu: 45,
+			gpu: 0,
+			mem: 40,
+			swap: 25,
+			disk: 45,
+			process: 77,
+			upload: 3,
+			download: 4,
+			tcp: 18,
+			udp: 9,
+		};
+		for (const [key, value] of Object.entries(values)) {
+			expect(chartSeries(key).slice(-1)[0]).toMatchObject({
+				timeStamp: String(firstNow),
+				[key]: value,
+			});
+		}
+		const previous = Object.fromEntries(
+			["cpu", "gpu", "process", "mem", "disk", "upload", "tcp"].map((key) => [
+				key,
+				chartSeries(key),
+			]),
+		);
+		detailChartMocks.lastData = websocketPayload(server, firstNow + 1000);
+		rerender(ui());
+		for (const [key, points] of Object.entries(previous)) {
+			expect(chartSeries(key)).toEqual([
+				...points,
+				{ ...points[points.length - 1], timeStamp: String(firstNow + 1000) },
+			]);
+		}
+	});
+
+	it("renders current samples even when websocket history is empty", () => {
+		seedWebSocketData();
+		detailChartMocks.messageHistory = [];
+		renderWithQuery(<ServerDetailChart server_id="7" />);
+		for (const key of [
+			"cpu",
+			"gpu",
+			"mem",
+			"disk",
+			"process",
+			"upload",
+			"tcp",
+		]) {
+			expect(chartSeries(key).length).toBeGreaterThan(0);
+			expect(chartSeries(key).slice(-1)[0]?.timeStamp).toBe(
+				String(detailChartMocks.lastData?.now),
+			);
+		}
+	});
+
+	it.each([
+		"rejected",
+		"business",
+		"secondary",
+	])("clears stale historical series after a %s period failure and can recover", async (failure) => {
+		const user = userEvent.setup();
+		seedWebSocketData();
+		Object.defineProperty(document, "cookie", {
+			configurable: true,
+			value: "session=1",
+		});
+		detailChartMocks.fetchLoginUser.mockResolvedValue(loginResponse());
+		detailChartMocks.fetchServerMetrics.mockImplementation(
+			(_id: number, metric: string, period: string) => {
+				if (
+					period === "7d" &&
+					(failure !== "secondary" ||
+						["swap", "net_in_speed", "udp_conn"].includes(metric))
+				) {
+					return failure === "rejected"
+						? Promise.reject(new Error("offline"))
+						: Promise.resolve({ success: false, data: null });
+				}
+				return Promise.resolve(metricsResponse(metric));
+			},
+		);
+		const error = vi.spyOn(console, "error").mockImplementation(() => {});
+		try {
+			renderWithQuery(<ServerDetailChart server_id="7" />);
+			await user.click(await screen.findByText("serverDetailChart.period1d"));
+			await waitFor(() =>
+				expect(screen.getAllByTestId("area-chart")).toHaveLength(5),
+			);
+			for (const key of [
+				"cpu",
+				"gpu",
+				"mem",
+				"disk",
+				"process",
+				"upload",
+				"tcp",
+			]) {
+				expect(chartSeries(key)).toHaveLength(3);
+				expect(chartSeries(key)[0].timeStamp).toBe(
+					String(Date.parse("2025-01-01T00:00:00.000Z")),
+				);
+			}
+			await user.click(screen.getByText("serverDetailChart.period7d"));
+			await waitFor(() =>
+				expect(screen.getAllByTestId("area-chart")).toHaveLength(5),
+			);
+			const failedKeys =
+				failure === "secondary"
+					? ["mem", "upload", "tcp"]
+					: ["cpu", "gpu", "mem", "disk", "process", "upload", "tcp"];
+			for (const key of failedKeys) expect(chartSeries(key)).toEqual([]);
+			await user.click(screen.getByText("serverDetailChart.period1d"));
+			await waitFor(() =>
+				expect(screen.getAllByTestId("area-chart")).toHaveLength(5),
+			);
+			for (const key of failedKeys) expect(chartSeries(key)).toHaveLength(3);
+		} finally {
+			error.mockRestore();
+		}
+	});
+
+	it("accepts successful empty historical series", async () => {
+		seedWebSocketData();
+		detailChartMocks.fetchServerMetrics.mockResolvedValue({
+			success: true,
+			data: { data_points: [] },
+		});
+		renderWithQuery(<ServerDetailChart server_id="7" />);
+		await userEvent
+			.setup()
+			.click(await screen.findByText("serverDetailChart.period1d"));
+		await waitFor(() =>
+			expect(screen.getAllByTestId("area-chart")).toHaveLength(5),
+		);
+		for (const key of ["cpu", "gpu", "mem", "disk", "process", "upload", "tcp"])
+			expect(chartSeries(key)).toEqual([]);
 	});
 });

@@ -1,6 +1,8 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useActiveIndicator } from "@/hooks/use-active-indicator";
+import { useRuntimeConfig } from "@/lib/runtime-config";
+import { safeSessionStorage } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 
 export default function GroupSwitch({
@@ -13,10 +15,7 @@ export default function GroupSwitch({
 	setCurrentTab: (tab: string) => void;
 }) {
 	const { t } = useTranslation();
-	const customBackgroundImage =
-		(window.CustomBackgroundImage as string) !== ""
-			? window.CustomBackgroundImage
-			: undefined;
+	const { backgroundImage: customBackgroundImage } = useRuntimeConfig();
 
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const {
@@ -51,7 +50,7 @@ export default function GroupSwitch({
 			setCurrentTab("All");
 			return;
 		}
-		const savedGroup = sessionStorage.getItem("selectedGroup");
+		const savedGroup = safeSessionStorage.getItem("selectedGroup");
 		if (savedGroup && tabs.includes(savedGroup)) {
 			setCurrentTab(savedGroup);
 		}

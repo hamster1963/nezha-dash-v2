@@ -5,6 +5,7 @@ import {
 	type SortOrder,
 	type SortType,
 } from "@/context/sort-context";
+import { safeSessionStorage } from "@/lib/storage";
 
 export interface RuntimeConfig {
 	forceTheme?: "dark" | "light";
@@ -15,12 +16,21 @@ export interface RuntimeConfig {
 	forceShowServices: boolean;
 	forceShowMap: boolean;
 	forceCardInline: boolean;
+	forcePeakCutEnabled: boolean;
+	customLogo?: string;
+	customDesc?: string;
+	customLinks?: string;
+	customIllustration?: string;
+	showNetTransfer: boolean;
+	fixedTopServerName: boolean;
+	forceUseSvgFlag: boolean;
+	disableAnimatedMan: boolean;
 }
 
 export const RUNTIME_CONFIG_CHANGE_EVENT = "runtimeConfigChange";
 const text = (value: unknown) =>
 	typeof value === "string" && value ? value : undefined;
-let snapshot: RuntimeConfig = {
+const defaults: RuntimeConfig = {
 	forceTheme: undefined,
 	backgroundImage: undefined,
 	mobileBackgroundImage: undefined,
@@ -29,10 +39,22 @@ let snapshot: RuntimeConfig = {
 	forceShowServices: false,
 	forceShowMap: false,
 	forceCardInline: false,
+	forcePeakCutEnabled: false,
+	customLogo: undefined,
+	customDesc: undefined,
+	customLinks: undefined,
+	customIllustration: undefined,
+	showNetTransfer: false,
+	fixedTopServerName: false,
+	forceUseSvgFlag: false,
+	disableAnimatedMan: false,
 };
+
+let snapshot = defaults;
 
 // Keep the public window.* custom_code API at this boundary.
 export function readRuntimeConfig(): RuntimeConfig {
+	if (typeof window === "undefined") return defaults;
 	const next: RuntimeConfig = {
 		forceTheme:
 			window.ForceTheme === "dark" || window.ForceTheme === "light"
@@ -43,6 +65,15 @@ export function readRuntimeConfig(): RuntimeConfig {
 		forceShowServices: Boolean(window.ForceShowServices),
 		forceShowMap: Boolean(window.ForceShowMap),
 		forceCardInline: Boolean(window.ForceCardInline),
+		forcePeakCutEnabled: Boolean(window.ForcePeakCutEnabled),
+		customLogo: text(window.CustomLogo),
+		customDesc: text(window.CustomDesc),
+		customLinks: text(window.CustomLinks),
+		customIllustration: text(window.CustomIllustration),
+		showNetTransfer: Boolean(window.ShowNetTransfer),
+		fixedTopServerName: Boolean(window.FixedTopServerName),
+		forceUseSvgFlag: Boolean(window.ForceUseSvgFlag),
+		disableAnimatedMan: Boolean(window.DisableAnimatedMan),
 		forceSortType: SORT_TYPES.includes(window.ForceSortType as SortType)
 			? (window.ForceSortType as SortType)
 			: undefined,
@@ -62,7 +93,8 @@ export function readRuntimeConfig(): RuntimeConfig {
 }
 
 export function refreshRuntimeConfig() {
-	window.dispatchEvent(new Event(RUNTIME_CONFIG_CHANGE_EVENT));
+	if (typeof window !== "undefined")
+		window.dispatchEvent(new Event(RUNTIME_CONFIG_CHANGE_EVENT));
 }
 
 const observedKeys = [
@@ -74,6 +106,15 @@ const observedKeys = [
 	"ForceShowServices",
 	"ForceShowMap",
 	"ForceCardInline",
+	"ForcePeakCutEnabled",
+	"CustomLogo",
+	"CustomDesc",
+	"CustomLinks",
+	"CustomIllustration",
+	"ShowNetTransfer",
+	"FixedTopServerName",
+	"ForceUseSvgFlag",
+	"DisableAnimatedMan",
 ] as const;
 let subscribers = 0;
 let stopObserving: (() => void) | undefined;
@@ -139,6 +180,7 @@ function observeAssignments() {
 }
 
 function subscribe(listener: () => void) {
+	if (typeof window === "undefined") return () => {};
 	window.addEventListener(RUNTIME_CONFIG_CHANGE_EVENT, listener);
 	window.addEventListener("backgroundChange", listener);
 	if (subscribers++ === 0) stopObserving = observeAssignments();
@@ -153,17 +195,13 @@ function subscribe(listener: () => void) {
 }
 
 export function useRuntimeConfig() {
-	return useSyncExternalStore(subscribe, readRuntimeConfig);
+	return useSyncExternalStore(subscribe, readRuntimeConfig, () => defaults);
 }
 
 export function restoreBackground() {
 	if (!window.CustomBackgroundImage) {
-		try {
-			window.CustomBackgroundImage =
-				sessionStorage.getItem("savedBackgroundImage") || "";
-		} catch {
-			/* Storage may be disabled by the browser. */
-		}
+		window.CustomBackgroundImage =
+			safeSessionStorage.getItem("savedBackgroundImage") || "";
 	}
 	refreshRuntimeConfig();
 }

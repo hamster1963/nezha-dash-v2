@@ -24,6 +24,7 @@ import {
 	panelDay,
 	panelNow,
 } from "@/lib/online-history";
+import { useRuntimeConfig } from "@/lib/runtime-config";
 import { cn } from "@/lib/utils";
 
 const DAY_OPTIONS = [1, 7, 30];
@@ -291,10 +292,7 @@ export default function ServerDetailOnlineHistory({
 		}
 	}, [guestMaxDays, queryError]);
 
-	const customBackgroundImage =
-		(window.CustomBackgroundImage as string) !== ""
-			? window.CustomBackgroundImage
-			: undefined;
+	const { backgroundImage: customBackgroundImage } = useRuntimeConfig();
 
 	const online = historyData?.data;
 	const tz = online?.timezone;

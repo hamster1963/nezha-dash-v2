@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useActiveIndicator } from "@/hooks/use-active-indicator";
+import { useRuntimeConfig } from "@/lib/runtime-config";
 import { cn } from "@/lib/utils";
 
 export default function TabSwitch({
@@ -14,10 +15,7 @@ export default function TabSwitch({
 	const { t } = useTranslation();
 	const { containerRef, enableIndicatorAnimation, indicator, setItemRef } =
 		useActiveIndicator(tabs, currentTab);
-	const customBackgroundImage =
-		(window.CustomBackgroundImage as string) !== ""
-			? window.CustomBackgroundImage
-			: undefined;
+	const { backgroundImage: customBackgroundImage } = useRuntimeConfig();
 	return (
 		<div className="z-50 flex flex-col items-start rounded-[50px] server-info-tab">
 			<div

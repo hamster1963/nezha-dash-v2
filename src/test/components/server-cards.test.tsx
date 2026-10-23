@@ -1,4 +1,4 @@
-import { fireEvent, screen } from "@testing-library/react";
+import { act, fireEvent, screen } from "@testing-library/react";
 import { useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import ServerCard from "@/components/ServerCard";
@@ -39,6 +39,26 @@ describe("ServerCard", () => {
 			FixedTopServerName: true,
 			ShowNetTransfer: true,
 		});
+	});
+
+	it("updates memoized card display when config changes without a server tick", () => {
+		window.ShowNetTransfer = false;
+		const server = createServer({ name: "live-config" });
+		const { container } = renderWithProviders(
+			<ServerCard
+				now={Date.parse("2025-01-01T00:00:20.000Z")}
+				serverInfo={server}
+			/>,
+		);
+		expect(
+			screen.queryByText("serverCard.upload:2.00 GiB"),
+		).not.toBeInTheDocument();
+		act(() => {
+			window.ShowNetTransfer = true;
+			window.CustomBackgroundImage = "/late.png";
+		});
+		expect(screen.getByText("serverCard.upload:2.00 GiB")).toBeInTheDocument();
+		expect(container.querySelector(".bg-card\\/70")).toBeInTheDocument();
 	});
 
 	it("renders online server metrics, billing, plan data, and navigates on click", async () => {

@@ -1,5 +1,6 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
+import { safeLocalStorage } from "@/lib/storage";
 
 import deTranslation from "./locales/de/translation.json";
 import enTranslation from "./locales/en/translation.json";
@@ -62,7 +63,7 @@ const resources = {
 };
 
 const getStoredLanguage = () => {
-	return localStorage.getItem("language") || "en-US";
+	return safeLocalStorage.getItem("language") || "en-US";
 };
 
 i18n.use(initReactI18next).init({
@@ -76,7 +77,7 @@ i18n.use(initReactI18next).init({
 
 // 添加语言改变时的处理函数
 i18n.on("languageChanged", (lng) => {
-	localStorage.setItem("language", lng);
+	safeLocalStorage.setItem("language", lng);
 });
 
 export default i18n;

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import useTooltip from "@/hooks/use-tooltip";
 import { geoJsonString } from "@/lib/geo-json-string";
 import { countryCoordinates } from "@/lib/geo-limit";
+import { useRuntimeConfig } from "@/lib/runtime-config";
 import { cn, formatNezhaInfo } from "@/lib/utils";
 import type { NezhaServer } from "@/types/nezha-api";
 
@@ -64,10 +65,7 @@ export default function GlobalMap({
 		return { countryList, countryServers, serverCounts };
 	}, [now, serverList]);
 
-	const customBackgroundImage =
-		(window.CustomBackgroundImage as string) !== ""
-			? window.CustomBackgroundImage
-			: undefined;
+	const { backgroundImage: customBackgroundImage } = useRuntimeConfig();
 
 	const width = 900;
 	const height = 500;

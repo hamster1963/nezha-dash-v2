@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useWebSocketContext } from "@/hooks/use-websocket-context";
 import { formatBytes } from "@/lib/format";
+import { useRuntimeConfig } from "@/lib/runtime-config";
+import { safeSessionStorage } from "@/lib/storage";
 import { cn, formatNezhaInfo } from "@/lib/utils";
 import NumericText from "./NumericText";
 import {
@@ -32,18 +34,19 @@ export default function ServerDetailOverview({
 }) {
 	const { t } = useTranslation();
 	const navigate = useNavigate();
+	const { backgroundImage: customBackgroundImage } = useRuntimeConfig();
 
 	const [hasHistory, setHasHistory] = useState(false);
 
 	useEffect(() => {
-		const previousPath = sessionStorage.getItem("fromMainPage");
+		const previousPath = safeSessionStorage.getItem("fromMainPage");
 		if (previousPath) {
 			setHasHistory(true);
 		}
 
 		return () => {
 			if (previousPath) {
-				sessionStorage.removeItem("fromMainPage");
+				safeSessionStorage.removeItem("fromMainPage");
 			}
 		};
 	}, []);
@@ -95,11 +98,6 @@ export default function ServerDetailOverview({
 		last_active_time_string,
 		boot_time_string,
 	} = formatNezhaInfo(nezhaWsData.now, server);
-
-	const customBackgroundImage =
-		(window.CustomBackgroundImage as string) !== ""
-			? window.CustomBackgroundImage
-			: undefined;
 
 	countries.registerLocale(enLocale);
 

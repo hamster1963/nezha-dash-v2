@@ -104,6 +104,15 @@ afterEach(() => {
 	window.ForcePeakCutEnabled = false;
 	window.ForceSortType = undefined;
 	window.ForceSortOrder = undefined;
+	window.ForceTheme = undefined;
+	window.CustomLogo = undefined;
+	window.CustomDesc = undefined;
+	window.CustomLinks = undefined;
+	window.CustomIllustration = undefined;
+	window.ShowNetTransfer = false;
+	window.FixedTopServerName = false;
+	window.ForceUseSvgFlag = false;
+	window.DisableAnimatedMan = false;
 	vi.unstubAllGlobals();
 	vi.restoreAllMocks();
 	vi.useRealTimers();

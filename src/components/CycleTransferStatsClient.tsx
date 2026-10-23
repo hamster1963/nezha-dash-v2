@@ -1,6 +1,7 @@
 import type React from "react";
 import { useTranslation } from "react-i18next";
 import { formatBytes } from "@/lib/format";
+import { useRuntimeConfig } from "@/lib/runtime-config";
 import { cn } from "@/lib/utils";
 
 interface CycleTransferStatsClientProps {
@@ -21,10 +22,7 @@ export const CycleTransferStatsClient: React.FC<
 	CycleTransferStatsClientProps
 > = ({ name, from, to, max, serverStats, className }) => {
 	const { t } = useTranslation();
-	const customBackgroundImage =
-		(window.CustomBackgroundImage as string) !== ""
-			? window.CustomBackgroundImage
-			: undefined;
+	const { backgroundImage: customBackgroundImage } = useRuntimeConfig();
 	return (
 		<div
 			className={cn(

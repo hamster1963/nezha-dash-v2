@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRuntimeConfig } from "@/lib/runtime-config";
+import { safeLocalStorage, safeSessionStorage } from "@/lib/storage";
 import type { NezhaWebsocketResponse } from "@/types/nezha-api";
 
 export function useServerPreferences(
@@ -14,8 +15,9 @@ export function useServerPreferences(
 	const hasRestoredScroll = useRef(false);
 	const [currentGroup, setCurrentGroup] = useState<string>("All");
 	const restoreScrollPosition = useCallback(() => {
-		const isFromMainPage = sessionStorage.getItem("fromMainPage") === "true";
-		const savedPosition = sessionStorage.getItem("scrollPosition");
+		const isFromMainPage =
+			safeSessionStorage.getItem("fromMainPage") === "true";
+		const savedPosition = safeSessionStorage.getItem("scrollPosition");
 		const scrollTop = savedPosition ? Number(savedPosition) : Number.NaN;
 
 		if (
@@ -36,12 +38,12 @@ export function useServerPreferences(
 
 	const handleTagChange = (newGroup: string) => {
 		setCurrentGroup(newGroup);
-		sessionStorage.setItem("selectedGroup", newGroup);
-		sessionStorage.setItem("scrollPosition", String(window.scrollY || 0));
+		safeSessionStorage.setItem("selectedGroup", newGroup);
+		safeSessionStorage.setItem("scrollPosition", String(window.scrollY || 0));
 	};
 
 	useEffect(() => {
-		const showServicesState = localStorage.getItem("showServices");
+		const showServicesState = safeLocalStorage.getItem("showServices");
 		if (forceShowServices) {
 			setShowServices("1");
 		} else if (showServicesState !== null) {
@@ -57,7 +59,7 @@ export function useServerPreferences(
 
 			// Mobile skips desktop defaults; shrinking does not reset an explicit choice.
 			if (!isMobile) {
-				const inlineState = localStorage.getItem("inline");
+				const inlineState = safeLocalStorage.getItem("inline");
 				if (forceCardInline) {
 					setInline("1");
 				} else if (inlineState !== null) {
@@ -76,7 +78,7 @@ export function useServerPreferences(
 	}, [forceCardInline]);
 
 	useEffect(() => {
-		const showMapState = localStorage.getItem("showMap");
+		const showMapState = safeLocalStorage.getItem("showMap");
 		if (forceShowMap) {
 			setShowMap("1");
 		} else if (showMapState !== null) {
@@ -85,7 +87,7 @@ export function useServerPreferences(
 	}, [forceShowMap]);
 
 	useEffect(() => {
-		const savedGroup = sessionStorage.getItem("selectedGroup") || "All";
+		const savedGroup = safeSessionStorage.getItem("selectedGroup") || "All";
 		setCurrentGroup(savedGroup);
 	}, []);
 
@@ -98,17 +100,17 @@ export function useServerPreferences(
 	const toggleMap = () => {
 		const value = showMap === "0" ? "1" : "0";
 		setShowMap(value);
-		localStorage.setItem("showMap", value);
+		safeLocalStorage.setItem("showMap", value);
 	};
 	const toggleServices = () => {
 		const value = desiredShowServices === "0" ? "1" : "0";
 		setShowServices(value);
-		localStorage.setItem("showServices", value);
+		safeLocalStorage.setItem("showServices", value);
 	};
 	const toggleInline = () => {
 		const value = inline === "0" ? "1" : "0";
 		setInline(value);
-		localStorage.setItem("inline", value);
+		safeLocalStorage.setItem("inline", value);
 	};
 	return {
 		showServices,

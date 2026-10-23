@@ -1,6 +1,7 @@
 import { hasFlag } from "country-flag-icons";
 import getUnicodeFlagIcon from "country-flag-icons/unicode";
 import { useEffect, useState } from "react";
+import { useRuntimeConfig } from "@/lib/runtime-config";
 import { cn } from "@/lib/utils";
 
 const normalizeCountryCode = (countryCode: string) =>
@@ -15,8 +16,7 @@ export default function ServerFlag({
 }) {
 	const [supportsEmojiFlags, setSupportsEmojiFlags] = useState(false);
 
-	// @ts-expect-error ForceUseSvgFlag is a global variable
-	const forceUseSvgFlag = window.ForceUseSvgFlag as boolean;
+	const { forceUseSvgFlag } = useRuntimeConfig();
 
 	useEffect(() => {
 		if (forceUseSvgFlag) {
@@ -40,7 +40,7 @@ export default function ServerFlag({
 		};
 
 		checkEmojiSupport();
-	}, []);
+	}, [forceUseSvgFlag]);
 
 	const normalizedCountryCode = normalizeCountryCode(country_code || "");
 	const canRenderSvgFlag = hasFlag(normalizedCountryCode);

@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import Bar from "@/components/loading/SkeletonBar";
 import { Card, CardContent } from "@/components/ui/card";
+import { useRuntimeConfig } from "@/lib/runtime-config";
 import { cn } from "@/lib/utils";
 
 function Metric({ footer = true }: { footer?: boolean }) {
@@ -21,10 +22,10 @@ function Metric({ footer = true }: { footer?: boolean }) {
 
 export default function OnlineHistorySkeleton({ days = 1 }: { days?: number }) {
 	const { t } = useTranslation();
+	const { backgroundImage } = useRuntimeConfig();
 	const dayCount = Math.min(31, Math.max(1, days) + 1);
 	const cardClassName = cn({
-		"bg-card/70":
-			typeof window !== "undefined" && Boolean(window.CustomBackgroundImage),
+		"bg-card/70": backgroundImage,
 	});
 
 	return (

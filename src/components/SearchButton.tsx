@@ -1,4 +1,6 @@
-"use client";
+import { useRuntimeConfig } from "@/lib/runtime-config";
+
+("use client");
 
 import { MagnifyingGlassIcon } from "@heroicons/react/20/solid";
 import { useCommand } from "@/hooks/use-command";
@@ -9,10 +11,7 @@ import { Button } from "./ui/button";
 export function SearchButton() {
 	const { openCommand } = useCommand();
 
-	const customBackgroundImage =
-		(window.CustomBackgroundImage as string) !== ""
-			? window.CustomBackgroundImage
-			: undefined;
+	const { backgroundImage: customBackgroundImage } = useRuntimeConfig();
 
 	return (
 		<Button

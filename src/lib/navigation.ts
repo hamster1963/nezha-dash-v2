@@ -5,6 +5,8 @@ export function saveMainPageScrollPosition() {
 		document.body.scrollTop ||
 		0;
 
-	sessionStorage.setItem("fromMainPage", "true");
-	sessionStorage.setItem("scrollPosition", String(scrollPosition));
+	safeSessionStorage.setItem("fromMainPage", "true");
+	safeSessionStorage.setItem("scrollPosition", String(scrollPosition));
 }
+
+import { safeSessionStorage } from "@/lib/storage";

@@ -9,6 +9,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useRuntimeConfig } from "@/lib/runtime-config";
 import { cn } from "@/lib/utils";
 
 import { useTheme } from "../hooks/use-theme";
@@ -17,10 +18,7 @@ export function ModeToggle() {
 	const { t } = useTranslation();
 	const { setTheme, theme } = useTheme();
 
-	const customBackgroundImage =
-		(window.CustomBackgroundImage as string) !== ""
-			? window.CustomBackgroundImage
-			: undefined;
+	const { backgroundImage: customBackgroundImage } = useRuntimeConfig();
 
 	const handleSelect = (e: Event, newTheme: Theme) => {
 		e.preventDefault();

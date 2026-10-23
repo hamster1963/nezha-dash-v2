@@ -10,6 +10,7 @@ import {
 	MageMicrosoftWindows,
 } from "@/lib/logo-class";
 import { saveMainPageScrollPosition } from "@/lib/navigation";
+import { useRuntimeConfig } from "@/lib/runtime-config";
 import { preloadServerDetail } from "@/lib/server-detail-preload";
 import { cn, formatNezhaInfo, parsePublicNote } from "@/lib/utils";
 import type { NezhaServer } from "@/types/nezha-api";
@@ -49,16 +50,11 @@ function ServerCard({
 
 	const showFlag = true;
 
-	const customBackgroundImage =
-		(window.CustomBackgroundImage as string) !== ""
-			? window.CustomBackgroundImage
-			: undefined;
-
-	// @ts-expect-error ShowNetTransfer is a global variable
-	const showNetTransfer = window.ShowNetTransfer as boolean;
-
-	// @ts-expect-error FixedTopServerName is a global variable
-	const fixedTopServerName = window.FixedTopServerName as boolean;
+	const {
+		backgroundImage: customBackgroundImage,
+		showNetTransfer,
+		fixedTopServerName,
+	} = useRuntimeConfig();
 
 	const parsedData = parsePublicNote(public_note);
 

@@ -73,6 +73,38 @@ describe("ThemeProvider", () => {
 		expect(document.documentElement).toHaveClass("dark");
 	});
 
+	it("ignores invalid persisted themes and respects the default", () => {
+		localStorage.setItem("theme-test", "invalid");
+		render(
+			<ThemeProvider storageKey="theme-test" defaultTheme="dark">
+				<ThemeProbe />
+			</ThemeProvider>,
+		);
+		expect(screen.getByTestId("theme-state")).toHaveTextContent("dark");
+		expect(document.documentElement).toHaveClass("dark");
+	});
+
+	it("initializes and switches themes when storage is blocked", () => {
+		const storage = vi
+			.spyOn(window, "localStorage", "get")
+			.mockImplementation(() => {
+				throw new Error("Storage denied");
+			});
+		try {
+			render(
+				<ThemeProvider>
+					<ThemeProbe />
+				</ThemeProvider>,
+			);
+			expect(screen.getByTestId("theme-state")).toHaveTextContent("system");
+			act(() => screen.getByRole("button", { name: "dark" }).click());
+			expect(screen.getByTestId("theme-state")).toHaveTextContent("dark");
+			expect(document.documentElement).toHaveClass("dark");
+		} finally {
+			storage.mockRestore();
+		}
+	});
+
 	it("follows system color scheme changes and cleans up its listener", () => {
 		let systemDark = true;
 		let changeListener: (() => void) | undefined;

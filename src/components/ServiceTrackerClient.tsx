@@ -6,6 +6,7 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useRuntimeConfig } from "@/lib/runtime-config";
 import { cn } from "@/lib/utils";
 
 import { Separator } from "./ui/separator";
@@ -31,10 +32,7 @@ export const ServiceTrackerClient: React.FC<ServiceTrackerProps> = ({
 	avgDelay = 0,
 }) => {
 	const { t } = useTranslation();
-	const customBackgroundImage =
-		(window.CustomBackgroundImage as string) !== ""
-			? window.CustomBackgroundImage
-			: undefined;
+	const { backgroundImage: customBackgroundImage } = useRuntimeConfig();
 
 	const getUptimeColor = (uptime: number) => {
 		if (uptime >= 99) return "text-emerald-500";

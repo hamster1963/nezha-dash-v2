@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "@/components/ui/card";
 import { useStatus } from "@/hooks/use-status";
 import { formatBytes } from "@/lib/format";
+import { useRuntimeConfig } from "@/lib/runtime-config";
 import { cn } from "@/lib/utils";
 import NumericText from "./NumericText";
 
@@ -31,16 +32,11 @@ export default function ServerOverview({
 	const { t } = useTranslation();
 	const { status, setStatus } = useStatus();
 
-	// @ts-expect-error DisableAnimatedMan is a global variable
-	const disableAnimatedMan = window.DisableAnimatedMan as boolean;
-
-	// @ts-expect-error CustomIllustration is a global variable
-	const customIllustration = window.CustomIllustration || "/animated-man.webp";
-
-	const customBackgroundImage =
-		(window.CustomBackgroundImage as string) !== ""
-			? window.CustomBackgroundImage
-			: undefined;
+	const {
+		backgroundImage: customBackgroundImage,
+		disableAnimatedMan,
+		customIllustration = "/animated-man.webp",
+	} = useRuntimeConfig();
 
 	return (
 		<section className="grid grid-cols-2 gap-4 lg:grid-cols-4 server-overview">

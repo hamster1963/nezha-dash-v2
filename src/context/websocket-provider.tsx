@@ -1,5 +1,6 @@
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { restoreServerPublicNotes } from "@/lib/public-note-cache";
 import type { NezhaWebsocketResponse } from "@/types/nezha-api";
 import {
 	WebSocketContext,
@@ -121,7 +122,11 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 						throw new Error("WebSocket message data must be a string");
 					}
 
-					const newData = normalizeWebSocketResponse(JSON.parse(event.data));
+					const response = normalizeWebSocketResponse(JSON.parse(event.data));
+					const newData = {
+						...response,
+						servers: restoreServerPublicNotes(response.servers),
+					};
 					setLastData(newData);
 					// 更新历史消息，保持最新的30条记录
 					setMessageHistory((prev) => {

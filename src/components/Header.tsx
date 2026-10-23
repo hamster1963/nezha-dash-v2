@@ -11,6 +11,8 @@ import { useBackground } from "@/hooks/use-background";
 import { useLoginUser } from "@/hooks/use-login-user";
 import { useWebSocketContext } from "@/hooks/use-websocket-context";
 import { fetchSetting } from "@/lib/nezha-api";
+import { useRuntimeConfig } from "@/lib/runtime-config";
+import { safeSessionStorage } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 
 import { LanguageSwitcher } from "./LanguageSwitcher";
@@ -67,16 +69,10 @@ function Header() {
 
 	const siteName = settingData?.data?.config?.site_name;
 
-	// @ts-expect-error CustomLogo is a global variable
-	const customLogo = window.CustomLogo || "/apple-touch-icon.png";
-
-	// @ts-expect-error CustomDesc is a global variable
-	const customDesc = window.CustomDesc || t("nezha");
-
-	const customMobileBackgroundImage =
-		window.CustomMobileBackgroundImage !== ""
-			? window.CustomMobileBackgroundImage
-			: undefined;
+	const config = useRuntimeConfig();
+	const customLogo = config.customLogo || "/apple-touch-icon.png";
+	const customDesc = config.customDesc || t("nezha");
+	const customMobileBackgroundImage = config.mobileBackgroundImage;
 
 	useEffect(() => {
 		const link =
@@ -96,16 +92,13 @@ function Header() {
 	}, [siteName]);
 
 	const handleBackgroundToggle = () => {
-		if (window.CustomBackgroundImage) {
+		if (backgroundImage) {
 			// Store the current background image before removing it
-			sessionStorage.setItem(
-				"savedBackgroundImage",
-				window.CustomBackgroundImage,
-			);
+			safeSessionStorage.setItem("savedBackgroundImage", backgroundImage);
 			updateBackground(undefined);
 		} else {
 			// Restore the saved background image
-			const savedImage = sessionStorage.getItem("savedBackgroundImage");
+			const savedImage = safeSessionStorage.getItem("savedBackgroundImage");
 			if (savedImage) {
 				updateBackground(savedImage);
 			}
@@ -119,7 +112,7 @@ function Header() {
 			<section className="flex items-center justify-between header-top">
 				<section
 					onClick={() => {
-						sessionStorage.removeItem("selectedGroup");
+						safeSessionStorage.removeItem("selectedGroup");
 						navigate("/");
 					}}
 					className="cursor-pointer flex items-center sm:text-base text-sm font-medium"
@@ -155,7 +148,7 @@ function Header() {
 					<LanguageSwitcher />
 					<ModeToggle />
 					{(customBackgroundImage ||
-						sessionStorage.getItem("savedBackgroundImage")) && (
+						safeSessionStorage.getItem("savedBackgroundImage")) && (
 						<Button
 							variant="outline"
 							size="sm"
@@ -230,8 +223,7 @@ function parseCustomLinks(customLinks: string | undefined): links[] | null {
 }
 
 function Links() {
-	// @ts-expect-error CustomLinks is a global variable
-	const customLinks = window.CustomLinks as string;
+	const { customLinks } = useRuntimeConfig();
 
 	const links = parseCustomLinks(customLinks);
 
@@ -264,7 +256,7 @@ export function RefreshToast() {
 
 	useEffect(() => {
 		if (!needReconnect) return;
-		sessionStorage.removeItem("needRefresh");
+		safeSessionStorage.removeItem("needRefresh");
 		const timer = setTimeout(() => navigate(0), 1000);
 		return () => clearTimeout(timer);
 	}, [needReconnect, navigate]);

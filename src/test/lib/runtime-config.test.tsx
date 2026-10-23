@@ -87,6 +87,41 @@ describe("runtime configuration boundary", () => {
 		});
 	});
 
+	it("publishes identity, card, illustration, and chart settings after mounting", () => {
+		const { result } = renderHook(useRuntimeConfig);
+		act(() => {
+			window.CustomLogo = "/logo.svg";
+			window.CustomDesc = "Fleet status";
+			window.CustomLinks = '[{"name":"Help","link":"/help"}]';
+			window.CustomIllustration = "/fleet.webp";
+			window.ShowNetTransfer = true;
+			window.FixedTopServerName = true;
+			window.ForceUseSvgFlag = true;
+			window.DisableAnimatedMan = true;
+			window.ForcePeakCutEnabled = true;
+		});
+		expect(result.current).toMatchObject({
+			customLogo: "/logo.svg",
+			customDesc: "Fleet status",
+			customLinks: '[{"name":"Help","link":"/help"}]',
+			customIllustration: "/fleet.webp",
+			showNetTransfer: true,
+			fixedTopServerName: true,
+			forceUseSvgFlag: true,
+			disableAnimatedMan: true,
+			forcePeakCutEnabled: true,
+		});
+		const previous = result.current;
+		act(() => window.dispatchEvent(new Event("runtimeConfigChange")));
+		expect(result.current).toBe(previous);
+		act(() => {
+			window.CustomLogo = "";
+			window.ShowNetTransfer = false;
+		});
+		expect(result.current.customLogo).toBeUndefined();
+		expect(result.current.showNetTransfer).toBe(false);
+	});
+
 	it("leaves existing accessors intact and uses bounded legacy discovery", async () => {
 		vi.useFakeTimers();
 		const previous = Object.getOwnPropertyDescriptor(window, "ForceSortType");

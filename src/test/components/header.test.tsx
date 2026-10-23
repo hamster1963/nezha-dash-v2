@@ -219,6 +219,30 @@ describe("Header", () => {
 		).not.toBeInTheDocument();
 	});
 
+	it("updates custom identity and links after configuration changes", async () => {
+		renderHeader();
+		await screen.findByText("Nezha");
+		act(() => {
+			window.CustomLogo = "/late-logo.svg";
+			window.CustomDesc = "Updated fleet";
+			window.CustomLinks = JSON.stringify([
+				{ name: "Status help", link: "/help" },
+			]);
+		});
+		expect(screen.getByAltText("apple-touch-icon")).toHaveAttribute(
+			"src",
+			"/late-logo.svg",
+		);
+		expect(screen.getByText("Updated fleet")).toBeInTheDocument();
+		expect(screen.getAllByRole("link", { name: "Status help" })).toHaveLength(
+			2,
+		);
+		expect(document.querySelector("link[rel='shortcut icon']")).toHaveAttribute(
+			"href",
+			"/late-logo.svg",
+		);
+	});
+
 	it("stores and removes the active custom background", async () => {
 		const user = userEvent.setup();
 		headerMocks.backgroundImage = "/desktop.png";

@@ -37,6 +37,7 @@ import {
 import { useActiveIndicator } from "@/hooks/use-active-indicator";
 import { useLoginUser } from "@/hooks/use-login-user";
 import { fetchMonitor, type MonitorPeriod } from "@/lib/nezha-api";
+import { useRuntimeConfig } from "@/lib/runtime-config";
 import { cn, formatTime } from "@/lib/utils";
 import type { NezhaMonitor, ServerMonitorChart } from "@/types/nezha-api";
 import NetworkChartLoading from "./NetworkChartLoading";
@@ -280,12 +281,8 @@ export const NetworkChartClient = React.memo(function NetworkChart({
 		};
 	}, [isPeriodLoading]);
 
-	const customBackgroundImage =
-		(window.CustomBackgroundImage as string) !== ""
-			? window.CustomBackgroundImage
-			: undefined;
-
-	const forcePeakCutEnabled = (window.ForcePeakCutEnabled as boolean) ?? false;
+	const { backgroundImage: customBackgroundImage, forcePeakCutEnabled } =
+		useRuntimeConfig();
 
 	// Change from string to string array for multi-selection
 	const [selectedCharts, setActiveCharts] = React.useState<string[]>([]);

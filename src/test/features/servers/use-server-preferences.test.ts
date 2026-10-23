@@ -9,6 +9,35 @@ beforeEach(() => {
 });
 
 describe("server preferences", () => {
+	it("keeps in-session controls usable when browser persistence is blocked", () => {
+		const fail = () => {
+			throw new Error("Storage blocked");
+		};
+		const local = vi
+			.spyOn(window, "localStorage", "get")
+			.mockImplementation(fail);
+		const session = vi
+			.spyOn(window, "sessionStorage", "get")
+			.mockImplementation(fail);
+		try {
+			const { result } = renderHook(() => useServerPreferences(true, data));
+			act(() => {
+				result.current.toggleMap();
+				result.current.toggleServices();
+				result.current.toggleInline();
+				result.current.handleTagChange("Asia");
+			});
+			expect(result.current).toMatchObject({
+				showMap: "1",
+				showServices: "1",
+				inline: "1",
+				currentGroup: "Asia",
+			});
+		} finally {
+			local.mockRestore();
+			session.mockRestore();
+		}
+	});
 	it("round trips the existing local storage keys as string flags", () => {
 		const { result } = renderHook(() => useServerPreferences(true, null));
 		for (const [key, toggle] of [

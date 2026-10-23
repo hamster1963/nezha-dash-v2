@@ -19,6 +19,7 @@ import {
 	loadServerDetail,
 	preloadServerDetail,
 } from "./lib/server-detail-preload";
+import { safeLocalStorage } from "./lib/storage";
 import { cn } from "./lib/utils";
 import ErrorPage from "./pages/ErrorPage";
 import Server from "./pages/Server";
@@ -104,12 +105,7 @@ const MainApp: React.FC = () => {
 
 	const language = settingData?.data?.config?.language;
 	useEffect(() => {
-		let savedLanguage: string | null = null;
-		try {
-			savedLanguage = localStorage.getItem("language");
-		} catch {
-			/* Storage is optional. */
-		}
+		const savedLanguage = safeLocalStorage.getItem("language");
 		if (language && !savedLanguage)
 			void Promise.resolve(i18n.changeLanguage(language)).catch(
 				() => undefined,

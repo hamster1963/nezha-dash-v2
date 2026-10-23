@@ -1,4 +1,6 @@
-"use client";
+import { useRuntimeConfig } from "@/lib/runtime-config";
+
+("use client");
 
 import { CheckCircleIcon, LanguageIcon } from "@heroicons/react/20/solid";
 import { useTranslation } from "react-i18next";
@@ -14,10 +16,7 @@ import { cn } from "@/lib/utils";
 export function LanguageSwitcher() {
 	const { t, i18n } = useTranslation();
 
-	const customBackgroundImage =
-		(window.CustomBackgroundImage as string) !== ""
-			? window.CustomBackgroundImage
-			: undefined;
+	const { backgroundImage: customBackgroundImage } = useRuntimeConfig();
 
 	const locale = i18n.languages[0];
 

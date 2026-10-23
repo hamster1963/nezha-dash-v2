@@ -2,7 +2,6 @@ import { type ClassValue, clsx } from "clsx";
 import dayjs from "dayjs";
 import { twMerge } from "tailwind-merge";
 import { requestJson } from "@/lib/http";
-import { handlePublicNote } from "@/lib/public-note-cache";
 import { selectServerMetrics } from "@/lib/server-metrics";
 
 export { handlePublicNote } from "@/lib/public-note-cache";
@@ -14,10 +13,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatNezhaInfo(now: number, serverInfo: NezhaServer) {
-	return {
-		...selectServerMetrics(now, serverInfo),
-		public_note: handlePublicNote(serverInfo.id, serverInfo.public_note || ""),
-	};
+	return selectServerMetrics(now, serverInfo);
 }
 
 export function getDaysBetweenDatesWithAutoRenewal({

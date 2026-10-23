@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { restoreServerPublicNotes } from "@/lib/public-note-cache";
 import { selectServerMetrics } from "@/lib/server-metrics";
 import { formatNezhaInfo, handlePublicNote } from "@/lib/utils";
 import { createServer } from "@/test/fixtures";
@@ -35,6 +36,10 @@ describe("pure server metrics", () => {
 			});
 		try {
 			expect(selectServerMetrics(now, createServer()).public_note).toBe("");
+			expect(formatNezhaInfo(now, createServer()).public_note).toBe("");
+			expect(
+				formatNezhaInfo(now, createServer({ public_note: "live" })).public_note,
+			).toBe("live");
 			expect(storage).not.toHaveBeenCalled();
 		} finally {
 			storage.mockRestore();
@@ -68,16 +73,22 @@ describe("pure server metrics", () => {
 		});
 	});
 
-	it("keeps the legacy facade's per-server cache and empty-note fallback", () => {
+	it("restores cached notes at data receipt while keeping both projections pure", () => {
 		sessionStorage.clear();
 		const server = createServer({ id: 42, public_note: "first" });
 		const pure = selectServerMetrics(now, server);
 		expect(sessionStorage.length).toBe(0);
 		expect(formatNezhaInfo(now, server)).toEqual(pure);
+		expect(sessionStorage.length).toBe(0);
+		restoreServerPublicNotes([server]);
 		expect(sessionStorage.getItem("server_42_public_note")).toBe("first");
+		const [restored] = restoreServerPublicNotes([
+			{ ...server, public_note: "" },
+		]);
+		expect(formatNezhaInfo(now, restored).public_note).toBe("first");
 		expect(
 			formatNezhaInfo(now, { ...server, public_note: "" }).public_note,
-		).toBe("first");
+		).toBe("");
 		expect(
 			selectServerMetrics(now, { ...server, public_note: "" }).public_note,
 		).toBe("");

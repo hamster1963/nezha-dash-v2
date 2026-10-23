@@ -293,6 +293,7 @@ describe("ServerDetailChart", () => {
 					7,
 					metric,
 					"1d",
+					expect.objectContaining({ signal: expect.any(AbortSignal) }),
 				);
 			});
 		}

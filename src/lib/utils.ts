@@ -1,6 +1,12 @@
 import { type ClassValue, clsx } from "clsx";
 import dayjs from "dayjs";
 import { twMerge } from "tailwind-merge";
+import { requestJson } from "@/lib/http";
+import { handlePublicNote } from "@/lib/public-note-cache";
+import { selectServerMetrics } from "@/lib/server-metrics";
+
+export { handlePublicNote } from "@/lib/public-note-cache";
+
 import type { NezhaServer } from "@/types/nezha-api";
 
 export function cn(...inputs: ClassValue[]) {
@@ -8,46 +14,8 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatNezhaInfo(now: number, serverInfo: NezhaServer) {
-	const lastActiveTime = serverInfo.last_active.startsWith("000")
-		? 0
-		: parseISOTimestamp(serverInfo.last_active);
 	return {
-		...serverInfo,
-		cpu: serverInfo.state.cpu || 0,
-		gpu: serverInfo.state.gpu || [],
-		process: serverInfo.state.process_count || 0,
-		up: serverInfo.state.net_out_speed / 1024 / 1024 || 0,
-		down: serverInfo.state.net_in_speed / 1024 / 1024 || 0,
-		last_active_time_string: lastActiveTime
-			? dayjs(lastActiveTime).format("YYYY-MM-DD HH:mm:ss")
-			: "",
-		online: now - lastActiveTime <= 30000,
-		uptime: serverInfo.state.uptime || 0,
-		version: serverInfo.host.version || null,
-		tcp: serverInfo.state.tcp_conn_count || 0,
-		udp: serverInfo.state.udp_conn_count || 0,
-		mem: (serverInfo.state.mem_used / serverInfo.host.mem_total) * 100 || 0,
-		swap: (serverInfo.state.swap_used / serverInfo.host.swap_total) * 100 || 0,
-		disk: (serverInfo.state.disk_used / serverInfo.host.disk_total) * 100 || 0,
-		stg: (serverInfo.state.disk_used / serverInfo.host.disk_total) * 100 || 0,
-		country_code: serverInfo.country_code,
-		platform: serverInfo.host.platform || "",
-		net_out_transfer: serverInfo.state.net_out_transfer || 0,
-		net_in_transfer: serverInfo.state.net_in_transfer || 0,
-		arch: serverInfo.host.arch || "",
-		mem_total: serverInfo.host.mem_total || 0,
-		swap_total: serverInfo.host.swap_total || 0,
-		disk_total: serverInfo.host.disk_total || 0,
-		boot_time: serverInfo.host.boot_time || 0,
-		boot_time_string: serverInfo.host.boot_time
-			? dayjs(serverInfo.host.boot_time * 1000).format("YYYY-MM-DD HH:mm:ss")
-			: "",
-		platform_version: serverInfo.host.platform_version || "",
-		cpu_info: serverInfo.host.cpu || [],
-		gpu_info: serverInfo.host.gpu || [],
-		load_1: serverInfo.state.load_1?.toFixed(2) || 0.0,
-		load_5: serverInfo.state.load_5?.toFixed(2) || 0.0,
-		load_15: serverInfo.state.load_15?.toFixed(2) || 0.0,
+		...selectServerMetrics(now, serverInfo),
 		public_note: handlePublicNote(serverInfo.id, serverInfo.public_note || ""),
 	};
 }
@@ -181,34 +149,22 @@ export function getDaysBetweenDates(date1: string, date2: string): number {
 	return Math.round((firstDate.getTime() - secondDate.getTime()) / oneDay);
 }
 
-export const fetcher = (url: string) =>
-	fetch(url)
-		.then((res) => {
-			if (!res.ok) {
-				throw new Error(res.statusText);
-			}
-			return res.json();
-		})
-		.then((data) => data.data)
-		.catch((err) => {
-			console.error(err);
-			throw err;
-		});
-
-export const nezhaFetcher = async (url: string) => {
-	const res = await fetch(url);
-
-	if (!res.ok) {
-		const error = new Error("An error occurred while fetching the data.");
-		// @ts-expect-error - res.json() returns a Promise<any>
-		error.info = await res.json();
-		// @ts-expect-error - res.status is a number
-		error.status = res.status;
+export const fetcher = async <T = unknown>(url: string): Promise<T> => {
+	try {
+		const response = await requestJson<{ data: T }>(
+			url,
+			undefined,
+			(response) => response.statusText,
+		);
+		return response.data;
+	} catch (error) {
+		console.error(error);
 		throw error;
 	}
-
-	return res.json();
 };
+
+export const nezhaFetcher = <T = unknown>(url: string): Promise<T> =>
+	requestJson<T>(url, undefined, "An error occurred while fetching the data.");
 
 export function parseISOTimestamp(isoString: string): number {
 	return new Date(isoString).getTime();
@@ -324,21 +280,4 @@ export function parsePublicNote(publicNote: string): PublicNoteData | null {
 		console.error("Error parsing public note:", error);
 		return null;
 	}
-}
-
-// Function to handle public_note with sessionStorage
-export function handlePublicNote(serverId: number, publicNote: string): string {
-	const storageKey = `server_${serverId}_public_note`;
-	const storedNote = sessionStorage.getItem(storageKey);
-
-	if (!publicNote && storedNote) {
-		return storedNote;
-	}
-
-	if (publicNote) {
-		sessionStorage.setItem(storageKey, publicNote);
-		return publicNote;
-	}
-
-	return "";
 }

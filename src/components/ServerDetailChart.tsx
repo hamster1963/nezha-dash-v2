@@ -25,15 +25,16 @@ import {
 } from "@/components/ui/tooltip";
 import { useActiveIndicator } from "@/hooks/use-active-indicator";
 import { useLoginUser } from "@/hooks/use-login-user";
+import {
+	combineMetricHistory,
+	useHistoricalData,
+	useMetricHistory,
+} from "@/hooks/use-metric-history";
 import { useWebSocketContext } from "@/hooks/use-websocket-context";
 import { formatBytes } from "@/lib/format";
-import { fetchServerMetrics, fetchSetting } from "@/lib/nezha-api";
-import {
-	cn,
-	formatNezhaInfo,
-	formatRelativeTime,
-	formatTime,
-} from "@/lib/utils";
+import { fetchSetting } from "@/lib/nezha-api";
+import { selectServerMetrics } from "@/lib/server-metrics";
+import { cn, formatRelativeTime, formatTime } from "@/lib/utils";
 import type {
 	MetricPeriod,
 	NezhaServer,
@@ -83,12 +84,6 @@ type connectChartData = {
 	tcp: number;
 	udp: number;
 };
-
-const MIN_HISTORY_LOADING_MS = 300;
-const sleep = (ms: number) =>
-	new Promise<void>((resolve) => {
-		setTimeout(resolve, ms);
-	});
 
 function PeriodSelector({
 	selectedPeriod,
@@ -345,84 +340,6 @@ export default function ServerDetailChart({
 	);
 }
 
-function useHistoricalData<T>(
-	serverId: number,
-	metricName: string,
-	period: ChartPeriod,
-	transformData: (timestamp: number, value: number) => T,
-) {
-	const [historicalData, setHistoricalData] = useState<T[]>([]);
-	const [isLoading, setIsLoading] = useState(false);
-	const [displayData, setDisplayData] = useState<T[]>([]);
-	const [loadedPeriod, setLoadedPeriod] = useState<ChartPeriod>("realtime");
-
-	const [failedPeriod, setFailedPeriod] = useState<ChartPeriod | null>(null);
-
-	useEffect(() => {
-		let cancelled = false;
-		setFailedPeriod(null);
-
-		if (period === "realtime") {
-			setHistoricalData([]);
-			setDisplayData([]);
-			setIsLoading(false);
-			setLoadedPeriod("realtime");
-			return () => {
-				cancelled = true;
-			};
-		}
-
-		const fetchData = async () => {
-			const loadingStartedAt = Date.now();
-			setIsLoading(true);
-			setHistoricalData([]);
-			setDisplayData([]);
-
-			try {
-				const response = await fetchServerMetrics(
-					serverId,
-					metricName as Parameters<typeof fetchServerMetrics>[1],
-					period as MetricPeriod,
-				);
-				if (response.success && response.data?.data_points) {
-					const transformedData = response.data.data_points.map((point) =>
-						transformData(point.ts, point.value),
-					);
-					if (!cancelled) {
-						setHistoricalData(transformedData);
-						setDisplayData(transformedData);
-						setLoadedPeriod(period);
-					}
-				} else {
-					if (!cancelled) setFailedPeriod(period);
-				}
-			} catch (error) {
-				if (!cancelled) setFailedPeriod(period);
-				console.error(`Failed to fetch ${metricName} metrics:`, error);
-			} finally {
-				const elapsed = Date.now() - loadingStartedAt;
-				if (elapsed < MIN_HISTORY_LOADING_MS) {
-					await sleep(MIN_HISTORY_LOADING_MS - elapsed);
-				}
-				if (!cancelled) {
-					setIsLoading(false);
-				}
-			}
-		};
-
-		fetchData();
-		return () => {
-			cancelled = true;
-		};
-	}, [serverId, metricName, period, transformData]);
-
-	const isHistoricalLoading =
-		period !== "realtime" &&
-		(isLoading || (loadedPeriod !== period && failedPeriod !== period));
-
-	return { historicalData, displayData, isLoading: isHistoricalLoading };
-}
-
 function GpuChart({
 	now,
 	id,
@@ -477,7 +394,7 @@ function GpuChart({
 				.map((wsData) => {
 					const server = wsData.servers.find((s) => s.id === id);
 					if (!server) return null;
-					const { gpu } = formatNezhaInfo(wsData.now, server);
+					const { gpu } = selectServerMetrics(wsData.now, server);
 					return {
 						timeStamp: wsData.now.toString(),
 						gpu: gpu[index],
@@ -643,7 +560,7 @@ function CpuChart({
 	const hasInitialized = useRef(false);
 	const [historyLoaded, setHistoryLoaded] = useState(false);
 
-	const { cpu } = formatNezhaInfo(now, data);
+	const { cpu } = selectServerMetrics(now, data);
 
 	const customBackgroundImage =
 		(window.CustomBackgroundImage as string) !== ""
@@ -676,7 +593,7 @@ function CpuChart({
 				.map((wsData) => {
 					const server = wsData.servers.find((s) => s.id === data.id);
 					if (!server) return null;
-					const { cpu } = formatNezhaInfo(wsData.now, server);
+					const { cpu } = selectServerMetrics(wsData.now, server);
 					return {
 						timeStamp: wsData.now.toString(),
 						cpu: cpu,
@@ -840,7 +757,7 @@ function ProcessChart({
 			? window.CustomBackgroundImage
 			: undefined;
 
-	const { process } = formatNezhaInfo(now, data);
+	const { process } = selectServerMetrics(now, data);
 
 	const transformProcessData = useMemo(
 		() => (timestamp: number, value: number) => ({
@@ -873,7 +790,7 @@ function ProcessChart({
 				.map((wsData) => {
 					const server = wsData.servers.find((s) => s.id === data.id);
 					if (!server) return null;
-					const { process } = formatNezhaInfo(wsData.now, server);
+					const { process } = selectServerMetrics(wsData.now, server);
 					return {
 						timeStamp: wsData.now.toString(),
 						process,
@@ -1029,99 +946,18 @@ function MemChart({
 			? window.CustomBackgroundImage
 			: undefined;
 
-	const { mem, swap } = formatNezhaInfo(now, data);
+	const { mem, swap } = selectServerMetrics(now, data);
 
-	// For memory, we fetch memory and swap separately and combine them
-	const [memHistoricalData, setMemHistoricalData] = useState<memChartData[]>(
-		[],
+	const history = useMetricHistory(data.id, ["memory", "swap"], period);
+	const memHistoricalData = combineMetricHistory(
+		history.data,
+		(timestamp, primary, secondary) => ({
+			timeStamp: String(timestamp),
+			mem: data.host.mem_total > 0 ? (primary / data.host.mem_total) * 100 : 0,
+			swap:
+				data.host.swap_total > 0 ? (secondary / data.host.swap_total) * 100 : 0,
+		}),
 	);
-	const [isLoadingMem, setIsLoadingMem] = useState(false);
-	const [loadedPeriodMem, setLoadedPeriodMem] =
-		useState<ChartPeriod>("realtime");
-
-	const [failedPeriodMem, setFailedPeriodMem] = useState<ChartPeriod | null>(
-		null,
-	);
-
-	useEffect(() => {
-		let cancelled = false;
-		setFailedPeriodMem(null);
-
-		if (period === "realtime") {
-			setMemHistoricalData([]);
-			setIsLoadingMem(false);
-			setLoadedPeriodMem("realtime");
-			return () => {
-				cancelled = true;
-			};
-		}
-
-		const fetchMemData = async () => {
-			const loadingStartedAt = Date.now();
-			setIsLoadingMem(true);
-			setMemHistoricalData([]);
-			try {
-				const [memResponse, swapResponse] = await Promise.all([
-					fetchServerMetrics(data.id, "memory", period as MetricPeriod),
-					fetchServerMetrics(data.id, "swap", period as MetricPeriod),
-				]);
-
-				if (
-					memResponse.success &&
-					memResponse.data?.data_points &&
-					swapResponse.success &&
-					swapResponse.data?.data_points
-				) {
-					const swapMap = new Map<number, number>();
-					if (swapResponse.success && swapResponse.data?.data_points) {
-						for (const point of swapResponse.data.data_points) {
-							// Convert bytes to percentage
-							const swapPercent =
-								data.host.swap_total > 0
-									? (point.value / data.host.swap_total) * 100
-									: 0;
-							swapMap.set(point.ts, swapPercent);
-						}
-					}
-
-					const combinedData = memResponse.data.data_points.map((point) => {
-						// Convert bytes to percentage
-						const memPercent =
-							data.host.mem_total > 0
-								? (point.value / data.host.mem_total) * 100
-								: 0;
-						return {
-							timeStamp: point.ts.toString(),
-							mem: memPercent,
-							swap: swapMap.get(point.ts) || 0,
-						};
-					});
-					if (!cancelled) {
-						setMemHistoricalData(combinedData);
-						setLoadedPeriodMem(period);
-					}
-				} else {
-					if (!cancelled) setFailedPeriodMem(period);
-				}
-			} catch (error) {
-				if (!cancelled) setFailedPeriodMem(period);
-				console.error("Failed to fetch memory metrics:", error);
-			} finally {
-				const elapsed = Date.now() - loadingStartedAt;
-				if (elapsed < MIN_HISTORY_LOADING_MS) {
-					await sleep(MIN_HISTORY_LOADING_MS - elapsed);
-				}
-				if (!cancelled) {
-					setIsLoadingMem(false);
-				}
-			}
-		};
-
-		fetchMemData();
-		return () => {
-			cancelled = true;
-		};
-	}, [data.id, period, data.host.mem_total, data.host.swap_total]);
 
 	// Reset when switching to realtime
 	useEffect(() => {
@@ -1138,7 +974,7 @@ function MemChart({
 				.map((wsData) => {
 					const server = wsData.servers.find((s) => s.id === data.id);
 					if (!server) return null;
-					const { mem, swap } = formatNezhaInfo(wsData.now, server);
+					const { mem, swap } = selectServerMetrics(wsData.now, server);
 					return {
 						timeStamp: wsData.now.toString(),
 						mem,
@@ -1186,10 +1022,7 @@ function MemChart({
 	} satisfies ChartConfig;
 
 	const displayData = period === "realtime" ? memChartData : memHistoricalData;
-	const isMemLoading =
-		period !== "realtime" &&
-		(isLoadingMem ||
-			(loadedPeriodMem !== period && failedPeriodMem !== period));
+	const isMemLoading = history.isLoading;
 
 	return (
 		<Card
@@ -1359,7 +1192,7 @@ function DiskChart({
 			? window.CustomBackgroundImage
 			: undefined;
 
-	const { disk } = formatNezhaInfo(now, data);
+	const { disk } = selectServerMetrics(now, data);
 
 	const transformDiskData = useMemo(
 		() => (timestamp: number, value: number) => {
@@ -1397,7 +1230,7 @@ function DiskChart({
 				.map((wsData) => {
 					const server = wsData.servers.find((s) => s.id === data.id);
 					if (!server) return null;
-					const { disk } = formatNezhaInfo(wsData.now, server);
+					const { disk } = selectServerMetrics(wsData.now, server);
 					return {
 						timeStamp: wsData.now.toString(),
 						disk,
@@ -1570,87 +1403,21 @@ function NetworkChart({
 			? window.CustomBackgroundImage
 			: undefined;
 
-	const { up, down } = formatNezhaInfo(now, data);
+	const { up, down } = selectServerMetrics(now, data);
 
-	// For network, we fetch upload and download separately and combine them
-	const [networkHistoricalData, setNetworkHistoricalData] = useState<
-		networkChartData[]
-	>([]);
-	const [isLoadingNetwork, setIsLoadingNetwork] = useState(false);
-	const [loadedPeriodNetwork, setLoadedPeriodNetwork] =
-		useState<ChartPeriod>("realtime");
-
-	const [failedPeriodNetwork, setFailedPeriodNetwork] =
-		useState<ChartPeriod | null>(null);
-
-	useEffect(() => {
-		let cancelled = false;
-		setFailedPeriodNetwork(null);
-
-		if (period === "realtime") {
-			setNetworkHistoricalData([]);
-			setIsLoadingNetwork(false);
-			setLoadedPeriodNetwork("realtime");
-			return () => {
-				cancelled = true;
-			};
-		}
-
-		const fetchNetworkData = async () => {
-			const loadingStartedAt = Date.now();
-			setIsLoadingNetwork(true);
-			setNetworkHistoricalData([]);
-			try {
-				const [uploadResponse, downloadResponse] = await Promise.all([
-					fetchServerMetrics(data.id, "net_out_speed", period as MetricPeriod),
-					fetchServerMetrics(data.id, "net_in_speed", period as MetricPeriod),
-				]);
-
-				if (
-					uploadResponse.success &&
-					uploadResponse.data?.data_points &&
-					downloadResponse.success &&
-					downloadResponse.data?.data_points
-				) {
-					const downloadMap = new Map<number, number>();
-					if (downloadResponse.success && downloadResponse.data?.data_points) {
-						for (const point of downloadResponse.data.data_points) {
-							// Convert bytes to MB
-							downloadMap.set(point.ts, point.value / 1024 / 1024);
-						}
-					}
-
-					const combinedData = uploadResponse.data.data_points.map((point) => ({
-						timeStamp: point.ts.toString(),
-						upload: point.value / 1024 / 1024, // Convert bytes to MB
-						download: downloadMap.get(point.ts) || 0,
-					}));
-					if (!cancelled) {
-						setNetworkHistoricalData(combinedData);
-						setLoadedPeriodNetwork(period);
-					}
-				} else {
-					if (!cancelled) setFailedPeriodNetwork(period);
-				}
-			} catch (error) {
-				if (!cancelled) setFailedPeriodNetwork(period);
-				console.error("Failed to fetch network metrics:", error);
-			} finally {
-				const elapsed = Date.now() - loadingStartedAt;
-				if (elapsed < MIN_HISTORY_LOADING_MS) {
-					await sleep(MIN_HISTORY_LOADING_MS - elapsed);
-				}
-				if (!cancelled) {
-					setIsLoadingNetwork(false);
-				}
-			}
-		};
-
-		fetchNetworkData();
-		return () => {
-			cancelled = true;
-		};
-	}, [data.id, period]);
+	const history = useMetricHistory(
+		data.id,
+		["net_out_speed", "net_in_speed"],
+		period,
+	);
+	const networkHistoricalData = combineMetricHistory(
+		history.data,
+		(timestamp, primary, secondary) => ({
+			timeStamp: String(timestamp),
+			upload: primary / 1024 / 1024,
+			download: secondary / 1024 / 1024,
+		}),
+	);
 
 	// Reset when switching to realtime
 	useEffect(() => {
@@ -1667,7 +1434,7 @@ function NetworkChart({
 				.map((wsData) => {
 					const server = wsData.servers.find((s) => s.id === data.id);
 					if (!server) return null;
-					const { up, down } = formatNezhaInfo(wsData.now, server);
+					const { up, down } = selectServerMetrics(wsData.now, server);
 					return {
 						timeStamp: wsData.now.toString(),
 						upload: up,
@@ -1710,10 +1477,7 @@ function NetworkChart({
 
 	const displayData =
 		period === "realtime" ? networkChartData : networkHistoricalData;
-	const isNetworkLoading =
-		period !== "realtime" &&
-		(isLoadingNetwork ||
-			(loadedPeriodNetwork !== period && failedPeriodNetwork !== period));
+	const isNetworkLoading = history.isLoading;
 
 	let maxDownload = Math.max(...displayData.map((item) => item.download));
 	maxDownload = Math.ceil(maxDownload);
@@ -1886,86 +1650,17 @@ function ConnectChart({
 			? window.CustomBackgroundImage
 			: undefined;
 
-	const { tcp, udp } = formatNezhaInfo(now, data);
+	const { tcp, udp } = selectServerMetrics(now, data);
 
-	// For connections, we fetch TCP and UDP separately and combine them
-	const [connectHistoricalData, setConnectHistoricalData] = useState<
-		connectChartData[]
-	>([]);
-	const [isLoadingConnect, setIsLoadingConnect] = useState(false);
-	const [loadedPeriodConnect, setLoadedPeriodConnect] =
-		useState<ChartPeriod>("realtime");
-
-	const [failedPeriodConnect, setFailedPeriodConnect] =
-		useState<ChartPeriod | null>(null);
-
-	useEffect(() => {
-		let cancelled = false;
-		setFailedPeriodConnect(null);
-
-		if (period === "realtime") {
-			setConnectHistoricalData([]);
-			setIsLoadingConnect(false);
-			setLoadedPeriodConnect("realtime");
-			return () => {
-				cancelled = true;
-			};
-		}
-
-		const fetchConnectData = async () => {
-			const loadingStartedAt = Date.now();
-			setIsLoadingConnect(true);
-			setConnectHistoricalData([]);
-			try {
-				const [tcpResponse, udpResponse] = await Promise.all([
-					fetchServerMetrics(data.id, "tcp_conn", period as MetricPeriod),
-					fetchServerMetrics(data.id, "udp_conn", period as MetricPeriod),
-				]);
-
-				if (
-					tcpResponse.success &&
-					tcpResponse.data?.data_points &&
-					udpResponse.success &&
-					udpResponse.data?.data_points
-				) {
-					const udpMap = new Map<number, number>();
-					if (udpResponse.success && udpResponse.data?.data_points) {
-						for (const point of udpResponse.data.data_points) {
-							udpMap.set(point.ts, point.value);
-						}
-					}
-
-					const combinedData = tcpResponse.data.data_points.map((point) => ({
-						timeStamp: point.ts.toString(),
-						tcp: point.value,
-						udp: udpMap.get(point.ts) || 0,
-					}));
-					if (!cancelled) {
-						setConnectHistoricalData(combinedData);
-						setLoadedPeriodConnect(period);
-					}
-				} else {
-					if (!cancelled) setFailedPeriodConnect(period);
-				}
-			} catch (error) {
-				if (!cancelled) setFailedPeriodConnect(period);
-				console.error("Failed to fetch connection metrics:", error);
-			} finally {
-				const elapsed = Date.now() - loadingStartedAt;
-				if (elapsed < MIN_HISTORY_LOADING_MS) {
-					await sleep(MIN_HISTORY_LOADING_MS - elapsed);
-				}
-				if (!cancelled) {
-					setIsLoadingConnect(false);
-				}
-			}
-		};
-
-		fetchConnectData();
-		return () => {
-			cancelled = true;
-		};
-	}, [data.id, period]);
+	const history = useMetricHistory(data.id, ["tcp_conn", "udp_conn"], period);
+	const connectHistoricalData = combineMetricHistory(
+		history.data,
+		(timestamp, primary, secondary) => ({
+			timeStamp: String(timestamp),
+			tcp: primary,
+			udp: secondary,
+		}),
+	);
 
 	// Reset when switching to realtime
 	useEffect(() => {
@@ -1982,7 +1677,7 @@ function ConnectChart({
 				.map((wsData) => {
 					const server = wsData.servers.find((s) => s.id === data.id);
 					if (!server) return null;
-					const { tcp, udp } = formatNezhaInfo(wsData.now, server);
+					const { tcp, udp } = selectServerMetrics(wsData.now, server);
 					return {
 						timeStamp: wsData.now.toString(),
 						tcp,
@@ -2031,10 +1726,7 @@ function ConnectChart({
 
 	const displayData =
 		period === "realtime" ? connectChartData : connectHistoricalData;
-	const isConnectLoading =
-		period !== "realtime" &&
-		(isLoadingConnect ||
-			(loadedPeriodConnect !== period && failedPeriodConnect !== period));
+	const isConnectLoading = history.isLoading;
 
 	return (
 		<Card

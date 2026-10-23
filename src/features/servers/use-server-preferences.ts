@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRuntimeConfig } from "@/lib/runtime-config";
 import type { NezhaWebsocketResponse } from "@/types/nezha-api";
 
 export function useServerPreferences(
 	hasServices: boolean,
 	data: NezhaWebsocketResponse | null | undefined,
 ) {
+	const { forceShowServices, forceShowMap, forceCardInline } =
+		useRuntimeConfig();
 	const [showServices, setShowServices] = useState<string>("0");
 	const [showMap, setShowMap] = useState<string>("0");
 	const [inline, setInline] = useState<string>("0");
@@ -39,12 +42,12 @@ export function useServerPreferences(
 
 	useEffect(() => {
 		const showServicesState = localStorage.getItem("showServices");
-		if (window.ForceShowServices) {
+		if (forceShowServices) {
 			setShowServices("1");
 		} else if (showServicesState !== null) {
 			setShowServices(showServicesState);
 		}
-	}, []);
+	}, [forceShowServices]);
 
 	useEffect(() => {
 		if (!hasServices) {
@@ -59,7 +62,7 @@ export function useServerPreferences(
 			// Mobile skips desktop defaults; shrinking does not reset an explicit choice.
 			if (!isMobile) {
 				const inlineState = localStorage.getItem("inline");
-				if (window.ForceCardInline) {
+				if (forceCardInline) {
 					setInline("1");
 				} else if (inlineState !== null) {
 					setInline(inlineState);
@@ -74,16 +77,16 @@ export function useServerPreferences(
 		return () => {
 			window.removeEventListener("resize", checkInlineSettings);
 		};
-	}, []);
+	}, [forceCardInline]);
 
 	useEffect(() => {
 		const showMapState = localStorage.getItem("showMap");
-		if (window.ForceShowMap) {
+		if (forceShowMap) {
 			setShowMap("1");
 		} else if (showMapState !== null) {
 			setShowMap(showMapState);
 		}
-	}, []);
+	}, [forceShowMap]);
 
 	useEffect(() => {
 		const savedGroup = sessionStorage.getItem("selectedGroup") || "All";

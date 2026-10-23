@@ -41,24 +41,65 @@ describe("InjectContext", () => {
 		expect(document.querySelector("#second")).toBeInTheDocument();
 	});
 
-	it("logs external resource failures without throwing to callers", async () => {
-		vi.spyOn(console, "error").mockImplementation(() => undefined);
-
-		const appendChild = vi
-			.spyOn(document.head, "appendChild")
-			.mockImplementation((node) => {
-				if (node instanceof HTMLScriptElement) {
-					setTimeout(() => node.onerror?.(new Event("error")), 0);
-				}
-				return node;
-			});
-
-		await InjectContext(`<script src="/missing.js"></script>`);
-
-		expect(appendChild).toHaveBeenCalled();
-		expect(console.error).toHaveBeenCalledWith(
-			"Error during resource injection:",
-			expect.any(Error),
+	it("rejects external failures and cleans partial resources", async () => {
+		const promise = InjectContext(
+			`<style>.partial{}</style><script src="/missing.js"></script>`,
 		);
+		await Promise.resolve();
+		const script = document.querySelector<HTMLScriptElement>(
+			"script[data-injected]",
+		);
+		script?.dispatchEvent(new Event("error"));
+		await expect(promise).rejects.toThrow("Failed to load custom resource");
+		expect(document.querySelector("[data-injected]")).toBeNull();
+	});
+
+	it("awaits stylesheets and external scripts in document order", async () => {
+		const promise = InjectContext(
+			`<link rel="stylesheet" href="/custom.css"><script src="/custom.js"></script><div id="ready"></div>`,
+		);
+		expect(document.querySelector("#ready")).toBeNull();
+		expect(document.querySelector("script[data-injected]")).toBeNull();
+		document
+			.querySelector("link[data-injected]")
+			?.dispatchEvent(new Event("load"));
+		await Promise.resolve();
+		expect(document.querySelector("#ready")).toBeNull();
+		document
+			.querySelector("script[data-injected]")
+			?.dispatchEvent(new Event("load"));
+		const cleanup = await promise;
+		expect(document.querySelector("#ready")).not.toBeNull();
+		cleanup();
+		expect(document.querySelector("#ready")).toBeNull();
+	});
+
+	it("aborts superseded work and never removes the replacement", async () => {
+		const first = InjectContext(
+			`old text<script src="/slow.js"></script><div id="stale"></div>`,
+		);
+		const rejection = expect(first).rejects.toMatchObject({
+			name: "AbortError",
+		});
+		await InjectContext(`<div id="replacement"></div>`);
+		await rejection;
+		expect(document.querySelector("#stale")).toBeNull();
+		expect(document.body).not.toHaveTextContent("old text");
+		expect(document.querySelector("#replacement")).not.toBeNull();
+	});
+
+	it("supports already aborted requests and resource timeouts", async () => {
+		const controller = new AbortController();
+		controller.abort();
+		await expect(
+			InjectContext("text", { signal: controller.signal }),
+		).rejects.toMatchObject({ name: "AbortError" });
+		vi.useFakeTimers();
+		const pending = InjectContext(`<script src="/timeout.js"></script>`, {
+			timeoutMs: 10,
+		});
+		const rejection = expect(pending).rejects.toThrow("timed out");
+		await vi.advanceTimersByTimeAsync(10);
+		await rejection;
 	});
 });

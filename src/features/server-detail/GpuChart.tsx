@@ -12,6 +12,7 @@ import {
 import type { ChartPeriod } from "@/hooks/use-metric-history";
 import { useHistoricalData } from "@/hooks/use-metric-history";
 import { formatBytes } from "@/lib/format";
+import { useRuntimeConfig } from "@/lib/runtime-config";
 import { cn, formatRelativeTime, formatTime } from "@/lib/utils";
 
 import type { gpuChartData } from "./chart-types";
@@ -34,10 +35,7 @@ export function GpuChart({
 	series: RealtimeSeries;
 	period: ChartPeriod;
 }) {
-	const customBackgroundImage =
-		(window.CustomBackgroundImage as string) !== ""
-			? window.CustomBackgroundImage
-			: undefined;
+	const { backgroundImage: customBackgroundImage } = useRuntimeConfig();
 
 	const transformGpuData = useMemo(
 		() => (timestamp: number, value: number) => ({

@@ -54,6 +54,23 @@ describe("server preferences", () => {
 			inline: "1",
 		});
 	});
+	it("observes delayed custom-code preferences without overwriting saved flags", () => {
+		for (const key of ["showMap", "showServices", "inline"])
+			localStorage.setItem(key, "0");
+		const { result } = renderHook(() => useServerPreferences(true, null));
+		act(() => {
+			window.ForceShowServices = true;
+			window.ForceShowMap = true;
+			window.ForceCardInline = true;
+		});
+		expect(result.current).toMatchObject({
+			showMap: "1",
+			showServices: "1",
+			inline: "1",
+		});
+		for (const key of ["showMap", "showServices", "inline"])
+			expect(localStorage.getItem(key)).toBe("0");
+	});
 	it("hides unavailable services without overwriting the saved preference", () => {
 		localStorage.setItem("showServices", "1");
 		const { result, rerender } = renderHook(

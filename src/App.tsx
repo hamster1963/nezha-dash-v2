@@ -12,6 +12,7 @@ import { useBackground } from "./hooks/use-background";
 import { useTheme } from "./hooks/use-theme";
 import { InjectContext } from "./lib/inject";
 import { fetchSetting } from "./lib/nezha-api";
+import { refreshRuntimeConfig, useRuntimeConfig } from "./lib/runtime-config";
 import { cn } from "./lib/utils";
 import ErrorPage from "./pages/ErrorPage";
 import Server from "./pages/Server";
@@ -40,24 +41,68 @@ const MainApp: React.FC = () => {
 	});
 	const { i18n } = useTranslation();
 	const { setTheme } = useTheme();
-	const [isCustomCodeInjected, setIsCustomCodeInjected] = useState(false);
+	const customCode = settingData?.data?.config?.custom_code ?? "";
+	const [initialization, setInitialization] = useState<{
+		code: string;
+		status: "loading" | "ready" | "error";
+		error?: Error;
+	}>({ code: "", status: "ready" });
+	const { forceTheme, mobileBackgroundImage: customMobileBackgroundImage } =
+		useRuntimeConfig();
 	const { backgroundImage: customBackgroundImage } = useBackground();
 
 	useEffect(() => {
-		loadServerDetail();
+		// Preloading is optional; lazy routing retains its normal error boundary.
+		void loadServerDetail().catch(() => undefined);
 	}, []);
 
 	useEffect(() => {
-		if (settingData?.data?.config?.custom_code) {
-			InjectContext(settingData?.data?.config?.custom_code);
-			setIsCustomCodeInjected(true);
-		}
-	}, [settingData?.data?.config?.custom_code]);
+		const controller = new AbortController();
+		let cleanup: (() => void) | undefined;
+		setInitialization({ code: customCode, status: "loading" });
+		const initialize = async () => {
+			try {
+				cleanup = await InjectContext(customCode, {
+					signal: controller.signal,
+				});
+				if (controller.signal.aborted) {
+					cleanup?.();
+					return;
+				}
+				refreshRuntimeConfig();
+				setInitialization({ code: customCode, status: "ready" });
+			} catch (error) {
+				if (!controller.signal.aborted) {
+					refreshRuntimeConfig();
+					setInitialization({
+						code: customCode,
+						status: "error",
+						error:
+							toError(error) ?? new Error("Custom code initialization failed"),
+					});
+				}
+			}
+		};
+		void initialize();
+		return () => {
+			controller.abort();
+			cleanup?.();
+		};
+	}, [customCode]);
 
-	// 检测是否强制指定了主题颜色
-	const forceTheme =
-		// @ts-expect-error ForceTheme is a global variable
-		(window.ForceTheme as string) !== "" ? window.ForceTheme : undefined;
+	const language = settingData?.data?.config?.language;
+	useEffect(() => {
+		let savedLanguage: string | null = null;
+		try {
+			savedLanguage = localStorage.getItem("language");
+		} catch {
+			/* Storage is optional. */
+		}
+		if (language && !savedLanguage)
+			void Promise.resolve(i18n.changeLanguage(language)).catch(
+				() => undefined,
+			);
+	}, [language, i18n]);
 
 	useEffect(() => {
 		if (forceTheme === "dark" || forceTheme === "light") {
@@ -67,24 +112,20 @@ const MainApp: React.FC = () => {
 
 	const initialBackendError = !settingData ? toError(error) : null;
 
-	if (settingData?.data?.config?.custom_code && !isCustomCodeInjected) {
-		return null;
-	}
-
 	if (
-		settingData?.data?.config?.language &&
-		!localStorage.getItem("language")
+		initialization.code !== customCode ||
+		initialization.status === "loading"
 	) {
-		i18n.changeLanguage(settingData?.data?.config?.language);
+		return <div role="status">Loading dashboard configuration…</div>;
 	}
-
-	const customMobileBackgroundImage =
-		window.CustomMobileBackgroundImage !== ""
-			? window.CustomMobileBackgroundImage
-			: undefined;
 
 	return (
 		<ErrorBoundary>
+			{initialization.status === "error" && (
+				<div role="alert">
+					Custom code initialization failed: {initialization.error?.message}
+				</div>
+			)}
 			{/* 固定定位的背景层 */}
 			{customBackgroundImage && (
 				<div

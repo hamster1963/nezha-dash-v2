@@ -18,6 +18,7 @@ import { useSort } from "@/hooks/use-sort";
 import { useStatus } from "@/hooks/use-status";
 import { useWebSocketContext } from "@/hooks/use-websocket-context";
 import { fetchServerGroup, fetchService } from "@/lib/nezha-api";
+import { useRuntimeConfig } from "@/lib/runtime-config";
 
 export default function Servers({
 	backendError,
@@ -49,10 +50,7 @@ export default function Servers({
 	const preferences = useServerPreferences(hasServices, nezhaWsData);
 	const { showServices, showMap, inline, currentGroup } = preferences;
 
-	const customBackgroundImage =
-		(window.CustomBackgroundImage as string) !== ""
-			? window.CustomBackgroundImage
-			: undefined;
+	const { backgroundImage: customBackgroundImage } = useRuntimeConfig();
 
 	const groupServerIdSets = useMemo(
 		() => selectGroupServerIds(groupData?.data),

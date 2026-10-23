@@ -67,7 +67,7 @@ describe("useBackground", () => {
 		expect(screen.getByText("empty")).toBeInTheDocument();
 	});
 
-	it("restores a saved background image during polling", async () => {
+	it("restores a saved background image on mount", async () => {
 		vi.useFakeTimers();
 		sessionStorage.setItem("savedBackgroundImage", "/saved.png");
 		render(<BackgroundProbe />);

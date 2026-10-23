@@ -1,107 +1,113 @@
-export const InjectContext = (content: string) => {
-	const tempDiv = document.createElement("div");
-	tempDiv.innerHTML = content;
+let disposeCurrent: (() => void) | undefined;
 
-	const INJECTION_MARK = "data-injected"; // 自定义属性标识
-
-	// 清理已有的注入资源
-	const cleanInjectedResources = () => {
-		document.querySelectorAll(`[${INJECTION_MARK}]`).forEach((node) => {
-			node.remove();
-		});
+/** Inject trusted dashboard custom_code in document order. Removing script nodes
+ * cannot undo arbitrary JavaScript side effects or cancel scripts already run. */
+export async function InjectContext(
+	content: string,
+	options: { signal?: AbortSignal; timeoutMs?: number } = {},
+): Promise<() => void> {
+	disposeCurrent?.();
+	const controller = new AbortController();
+	const nodes: Node[] = [];
+	const dispose = () => {
+		controller.abort();
+		for (const node of nodes) node.parentNode?.removeChild(node);
+		options.signal?.removeEventListener("abort", dispose);
+		if (disposeCurrent === dispose) disposeCurrent = undefined;
 	};
-
-	const loadExternalScript = (
-		scriptElement: HTMLScriptElement,
-	): Promise<void> => {
-		return new Promise((resolve, reject) => {
-			const script = document.createElement("script");
-			script.src = scriptElement.src;
-			script.async = false; // 保持顺序执行
-			script.setAttribute(INJECTION_MARK, "true"); // 添加标识
-			script.onload = () => resolve();
-			script.onerror = () =>
-				reject(new Error(`Failed to load script: ${scriptElement.src}`));
-			document.head.appendChild(script);
-		});
+	disposeCurrent = dispose;
+	options.signal?.addEventListener("abort", dispose, { once: true });
+	if (options.signal?.aborted) dispose();
+	const check = () => {
+		if (controller.signal.aborted)
+			throw new DOMException("Injection cancelled", "AbortError");
 	};
-
-	const executeInlineScript = (scriptContent: string): Promise<void> => {
-		return new Promise((resolve) => {
-			const script = document.createElement("script");
-			script.textContent = scriptContent;
-			script.setAttribute(INJECTION_MARK, "true"); // 添加标识
-			document.body.appendChild(script);
-			resolve();
-		});
+	const append = (node: Node, parent: Node) => {
+		check();
+		nodes.push(node);
+		if (node instanceof Element) node.setAttribute("data-injected", "true");
+		parent.appendChild(node);
 	};
-
-	const loadStyle = (styleElement: HTMLStyleElement): Promise<void> => {
-		return new Promise((resolve, reject) => {
-			if ((styleElement as any).href) {
-				// 处理 <link>
-				const link = document.createElement("link");
-				link.rel = "stylesheet";
-				link.href = (styleElement as any).href;
-				link.setAttribute(INJECTION_MARK, "true"); // 添加标识
-				link.onload = () => resolve();
-				link.onerror = () =>
-					reject(new Error(`Failed to load stylesheet: ${link.href}`));
-				document.head.appendChild(link);
-			} else {
-				const style = document.createElement("style");
-				style.textContent = styleElement.textContent;
-				style.setAttribute(INJECTION_MARK, "true"); // 添加标识
-				document.head.appendChild(style);
-				resolve();
+	const load = (node: HTMLScriptElement | HTMLLinkElement, parent: Node) =>
+		new Promise<void>((resolve, reject) => {
+			const finish = (error?: Error) => {
+				clearTimeout(timer);
+				node.onload = null;
+				node.onerror = null;
+				controller.signal.removeEventListener("abort", abort);
+				if (error) reject(error);
+				else resolve();
+			};
+			const abort = () =>
+				finish(new DOMException("Injection cancelled", "AbortError"));
+			const timer = setTimeout(
+				() => finish(new Error("Custom resource loading timed out")),
+				options.timeoutMs ?? 30000,
+			);
+			node.onload = () => finish();
+			node.onerror = () =>
+				finish(
+					new Error(
+						`Failed to load custom resource: ${node instanceof HTMLScriptElement ? node.src : node.href}`,
+					),
+				);
+			controller.signal.addEventListener("abort", abort, { once: true });
+			try {
+				append(node, parent);
+			} catch (error) {
+				finish(error instanceof Error ? error : new Error(String(error)));
 			}
 		});
-	};
-
-	const handlers: { [key: string]: (element: HTMLElement) => Promise<void> } = {
-		SCRIPT: (element) => {
-			const scriptElement = element as HTMLScriptElement;
-			if (scriptElement.src) {
-				// 加载外部脚本
-				return loadExternalScript(scriptElement);
+	const container = document.createElement("div");
+	container.innerHTML = content;
+	try {
+		check();
+		for (const source of Array.from(container.childNodes)) {
+			check();
+			if (source instanceof HTMLScriptElement) {
+				const script = document.createElement("script");
+				for (const attribute of Array.from(source.attributes))
+					script.setAttribute(attribute.name, attribute.value);
+				script.textContent = source.textContent;
+				script.async = false;
+				if (script.src || script.type === "module")
+					await load(script, document.head);
+				else {
+					let scriptError: Error | undefined;
+					const onError = (event: ErrorEvent) => {
+						scriptError =
+							event.error instanceof Error
+								? event.error
+								: new Error(event.message);
+						event.preventDefault();
+					};
+					window.addEventListener("error", onError);
+					try {
+						append(script, document.body);
+					} finally {
+						window.removeEventListener("error", onError);
+					}
+					if (scriptError) throw scriptError;
+				}
+			} else if (
+				source instanceof HTMLLinkElement &&
+				source.rel === "stylesheet"
+			) {
+				await load(source.cloneNode(true) as HTMLLinkElement, document.head);
 			} else {
-				// 执行内联脚本
-				return executeInlineScript(scriptElement.textContent || "");
-			}
-		},
-		STYLE: (element) => loadStyle(element as HTMLStyleElement),
-		META: (element) => {
-			const meta = element.cloneNode(true) as HTMLElement;
-			meta.setAttribute(INJECTION_MARK, "true"); // 添加标识
-			document.head.appendChild(meta); // 将 meta 标签插入到 <head>
-			return Promise.resolve();
-		},
-		DEFAULT: (element) => {
-			element.setAttribute(INJECTION_MARK, "true"); // 添加标识
-			document.body.appendChild(element);
-			return Promise.resolve();
-		},
-	};
-
-	// 开始注入前清理已有资源
-	cleanInjectedResources();
-
-	const executeSequentially = async () => {
-		for (const node of Array.from(tempDiv.childNodes)) {
-			if (node.nodeType === Node.ELEMENT_NODE) {
-				const element = node as HTMLElement;
-				const handler = handlers[element.tagName] || handlers.DEFAULT;
-				await handler(element); // 按顺序等待当前脚本或资源完成处理
-			} else if (node.nodeType === Node.TEXT_NODE) {
-				document.body.appendChild(
-					document.createTextNode(node.textContent || ""),
+				append(
+					source,
+					source instanceof HTMLStyleElement ||
+						source instanceof HTMLMetaElement
+						? document.head
+						: document.body,
 				);
 			}
 		}
-		console.log("All resources have been injected and executed in sequence.");
-	};
-
-	return executeSequentially().catch((error) => {
-		console.error("Error during resource injection:", error);
-	});
-};
+		check();
+		return dispose;
+	} catch (error) {
+		dispose();
+		throw error;
+	}
+}

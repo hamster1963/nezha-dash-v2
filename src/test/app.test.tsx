@@ -1,5 +1,5 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "@/App";
 import { createTestQueryClient } from "@/test/utils";
@@ -142,9 +142,67 @@ describe("App", () => {
 		await waitFor(() => {
 			expect(appMocks.injectContext).toHaveBeenCalledWith(
 				"<script>custom</script>",
+				expect.objectContaining({ signal: expect.any(AbortSignal) }),
 			);
 		});
 		expect(await screen.findByText("server-page")).toBeInTheDocument();
+	});
+
+	it("waits for custom code and reports injection failures without hiding the shell", async () => {
+		let reject!: (error: Error) => void;
+		appMocks.fetchSetting.mockResolvedValue(
+			settingResponse("<script src='/slow.js'></script>"),
+		);
+		appMocks.injectContext.mockImplementation((code: string) =>
+			code
+				? new Promise((_, fail) => {
+						reject = fail;
+					})
+				: Promise.resolve(),
+		);
+		renderApp();
+		await waitFor(() => expect(reject).toBeDefined());
+		expect(screen.getByRole("status")).toHaveTextContent(
+			"Loading dashboard configuration",
+		);
+		expect(screen.queryByText("server-page")).not.toBeInTheDocument();
+		await act(async () => reject(new Error("resource failed")));
+		expect(screen.getByRole("alert")).toHaveTextContent("resource failed");
+		expect(screen.getByText("server-page")).toBeInTheDocument();
+	});
+
+	it("ignores stale initialization after configuration replacement and aborts on unmount", async () => {
+		let finishOld!: (cleanup: () => void) => void;
+		let oldSignal!: AbortSignal;
+		appMocks.fetchSetting.mockResolvedValue(settingResponse("old"));
+		appMocks.injectContext.mockImplementation(
+			(code: string, { signal }: { signal: AbortSignal }) => {
+				if (code === "old") {
+					oldSignal = signal;
+					return new Promise((resolve) => {
+						finishOld = resolve;
+					});
+				}
+				return Promise.resolve();
+			},
+		);
+		const { queryClient, unmount } = renderApp();
+		await waitFor(() => expect(finishOld).toBeDefined());
+		act(() => {
+			queryClient.setQueryData(["setting"], settingResponse("new"));
+		});
+		await screen.findByText("server-page");
+		expect(oldSignal.aborted).toBe(true);
+		const cleanup = vi.fn();
+		await act(async () => finishOld(cleanup));
+		expect(cleanup).toHaveBeenCalledOnce();
+		expect(screen.queryByRole("status")).not.toBeInTheDocument();
+		const latestSignal =
+			appMocks.injectContext.mock.calls[
+				appMocks.injectContext.mock.calls.length - 1
+			]?.[1].signal;
+		unmount();
+		expect(latestSignal.aborted).toBe(true);
 	});
 
 	it("renders the app shell when initial settings fetch fails", async () => {

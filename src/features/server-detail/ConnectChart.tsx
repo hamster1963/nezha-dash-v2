@@ -12,6 +12,7 @@ import {
 	combineMetricHistory,
 	useMetricHistory,
 } from "@/hooks/use-metric-history";
+import { useRuntimeConfig } from "@/lib/runtime-config";
 import { selectServerMetrics } from "@/lib/server-metrics";
 import { cn, formatRelativeTime, formatTime } from "@/lib/utils";
 import type { NezhaServer } from "@/types/nezha-api";
@@ -28,10 +29,7 @@ export function ConnectChart({
 	series: RealtimeSeries;
 	period: ChartPeriod;
 }) {
-	const customBackgroundImage =
-		(window.CustomBackgroundImage as string) !== ""
-			? window.CustomBackgroundImage
-			: undefined;
+	const { backgroundImage: customBackgroundImage } = useRuntimeConfig();
 
 	const { tcp, udp } = selectServerMetrics(now, data);
 

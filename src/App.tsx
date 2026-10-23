@@ -1,14 +1,21 @@
 import { useQuery } from "@tanstack/react-query";
 import type React from "react";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
+import {
+	Route,
+	BrowserRouter as Router,
+	Routes,
+	useLocation,
+} from "react-router-dom";
 
 import { DashCommand } from "./components/DashCommand";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Footer from "./components/Footer";
 import Header, { RefreshToast } from "./components/Header";
+import LocalErrorBoundary from "./components/LocalErrorBoundary";
 import { ServerDetailPageLoading } from "./components/loading/ServerDetailLoading";
+import RetryableLazy from "./components/RetryableLazy";
 import { useBackground } from "./hooks/use-background";
 import { useTheme } from "./hooks/use-theme";
 import { InjectContext } from "./lib/inject";
@@ -24,14 +31,19 @@ import { cn } from "./lib/utils";
 import ErrorPage from "./pages/ErrorPage";
 import Server from "./pages/Server";
 
-const NotFound = lazy(() => import("./pages/NotFound"));
-const LazyServerDetail = lazy(loadServerDetail);
+const loadNotFound = () => import("./pages/NotFound");
 function ServerDetail() {
+	const { t } = useTranslation();
 	// 已完成预加载时直接渲染，避免 lazy 首次读取已兑现 Promise 仍短暂挂起。
-	const [Component] = useState(
-		() => getPreloadedServerDetail() ?? LazyServerDetail,
+	return (
+		<RetryableLazy
+			load={loadServerDetail}
+			getPreloaded={getPreloadedServerDetail}
+			componentProps={{}}
+			fallback={<ServerDetailPageLoading />}
+			title={t("error.detailPageFailed")}
+		/>
 	);
-	return <Component />;
 }
 
 // Route checker component
@@ -45,6 +57,7 @@ const toError = (error: unknown) => {
 };
 
 const MainApp: React.FC = () => {
+	const { pathname } = useLocation();
 	const { data: settingData, error } = useQuery({
 		queryKey: ["setting"],
 		queryFn: () => fetchSetting(),
@@ -163,29 +176,26 @@ const MainApp: React.FC = () => {
 					<RefreshToast />
 					<Header />
 					<DashCommand />
-					<Routes>
-						<Route
-							path="/"
-							element={<Server backendError={initialBackendError} />}
-						/>
-						<Route
-							path="/server/:id"
-							element={
-								<Suspense fallback={<ServerDetailPageLoading />}>
-									<ServerDetail />
-								</Suspense>
-							}
-						/>
-						<Route path="/error" element={<ErrorPage />} />
-						<Route
-							path="*"
-							element={
-								<Suspense fallback={null}>
-									<NotFound />
-								</Suspense>
-							}
-						/>
-					</Routes>
+					<LocalErrorBoundary resetKey={pathname} allowReload>
+						<Routes>
+							<Route
+								path="/"
+								element={<Server backendError={initialBackendError} />}
+							/>
+							<Route path="/server/:id" element={<ServerDetail />} />
+							<Route path="/error" element={<ErrorPage />} />
+							<Route
+								path="*"
+								element={
+									<RetryableLazy
+										load={loadNotFound}
+										componentProps={{}}
+										fallback={null}
+									/>
+								}
+							/>
+						</Routes>
+					</LocalErrorBoundary>
 					<Footer />
 				</main>
 			</div>

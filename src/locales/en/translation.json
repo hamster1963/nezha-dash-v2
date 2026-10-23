@@ -117,7 +117,12 @@
 		"backendUnavailableTitle": "Backend API unavailable",
 		"backendUnavailableDescription": "The page is still available, but data cannot be loaded right now.",
 		"loginRequiredTitle": "Login required",
-		"loginRequiredDescription": "This site requires a login to load monitoring data."
+		"loginRequiredDescription": "This site requires a login to load monitoring data.",
+		"sectionFailed": "This section couldn’t be displayed.",
+		"retry": "Try again",
+		"reloadPage": "Reload page",
+		"detailPageFailed": "Server details couldn’t be displayed",
+		"chartFailed": "Chart couldn’t be displayed"
 	},
 	"tabSwitch": {
 		"Detail": "Detail",

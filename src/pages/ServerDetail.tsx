@@ -1,8 +1,10 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Navigate, useParams } from "react-router-dom";
 import OnlineHistorySkeleton from "@/components/loading/OnlineHistorySkeleton";
 import { ServerDetailChartLoading } from "@/components/loading/ServerDetailLoading";
 import NetworkChartLoading from "@/components/NetworkChartLoading";
+import RetryableLazy from "@/components/RetryableLazy";
 import ServerDetailOverview from "@/components/ServerDetailOverview";
 import TabSwitch from "@/components/TabSwitch";
 import { Separator } from "@/components/ui/separator";
@@ -11,24 +13,18 @@ import {
 	loadServerDetailChart,
 } from "@/lib/server-detail-preload";
 
-const LazyServerDetailChart = lazy(loadServerDetailChart);
-
-const NetworkChart = lazy(() =>
+const loadNetworkChart = () =>
 	import("@/components/NetworkChart").then((module) => ({
 		default: module.NetworkChart,
-	})),
-);
+	}));
 
-const ServerDetailOnlineHistory = lazy(() =>
+const loadOnlineHistory = () =>
 	import("@/components/ServerDetailOnlineHistory").then((module) => ({
 		default: module.default,
-	})),
-);
+	}));
 
 export default function ServerDetail() {
-	const [ServerDetailChart] = useState(
-		() => getPreloadedServerDetailChart() ?? LazyServerDetailChart,
-	);
+	const { t } = useTranslation();
 	useEffect(() => {
 		window.scrollTo({ top: 0, left: 0, behavior: "instant" });
 	}, []);
@@ -62,19 +58,32 @@ export default function ServerDetail() {
 			</section> */}
 
 			{currentTab === tabs[0] && (
-				<Suspense fallback={<ServerDetailChartLoading />}>
-					<ServerDetailChart server_id={server_id} />
-				</Suspense>
+				<RetryableLazy
+					load={loadServerDetailChart}
+					getPreloaded={getPreloadedServerDetailChart}
+					componentProps={{ server_id }}
+					fallback={<ServerDetailChartLoading />}
+					resetKey={server_id}
+					title={t("error.chartFailed")}
+				/>
 			)}
 			{currentTab === tabs[1] && (
-				<Suspense fallback={<NetworkChartLoading />}>
-					<NetworkChart server_id={Number(server_id)} show={true} />
-				</Suspense>
+				<RetryableLazy
+					load={loadNetworkChart}
+					componentProps={{ server_id: Number(server_id), show: true }}
+					fallback={<NetworkChartLoading />}
+					resetKey={server_id}
+					title={t("error.chartFailed")}
+				/>
 			)}
 			{currentTab === tabs[2] && (
-				<Suspense fallback={<OnlineHistorySkeleton />}>
-					<ServerDetailOnlineHistory server_id={server_id} />
-				</Suspense>
+				<RetryableLazy
+					load={loadOnlineHistory}
+					componentProps={{ server_id }}
+					fallback={<OnlineHistorySkeleton />}
+					resetKey={server_id}
+					title={t("error.chartFailed")}
+				/>
 			)}
 		</div>
 	);

@@ -111,7 +111,12 @@
 		"backendUnavailableTitle": "后端 API 无法访问",
 		"backendUnavailableDescription": "页面仍会正常显示，但暂时无法加载监控数据。",
 		"loginRequiredTitle": "需要登录",
-		"loginRequiredDescription": "当前站点已开启强制登录，登录后即可加载监控数据。"
+		"loginRequiredDescription": "当前站点已开启强制登录，登录后即可加载监控数据。",
+		"sectionFailed": "无法显示此部分内容。",
+		"retry": "重试",
+		"reloadPage": "重新加载页面",
+		"detailPageFailed": "无法显示服务器详情",
+		"chartFailed": "无法显示图表"
 	},
 	"tabSwitch": {
 		"Detail": "详情",

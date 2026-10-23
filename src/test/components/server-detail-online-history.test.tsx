@@ -1,8 +1,8 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import dayjs from "dayjs";
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ServerDetailOnlineHistory from "@/components/ServerDetailOnlineHistory";
 import { createTestQueryClient } from "@/test/utils";
@@ -61,11 +61,12 @@ function onlineHistoryResponse(maxDays = 30): OnlineHistoryResponse {
 }
 
 function renderWithQuery(ui: ReactElement) {
-	return render(
-		<QueryClientProvider client={createTestQueryClient()}>
-			{ui}
-		</QueryClientProvider>,
-	);
+	const client = createTestQueryClient();
+	return render(ui, {
+		wrapper: ({ children }: { children: ReactNode }) => (
+			<QueryClientProvider client={client}>{children}</QueryClientProvider>
+		),
+	});
 }
 
 describe("ServerDetailOnlineHistory", () => {
@@ -93,17 +94,11 @@ describe("ServerDetailOnlineHistory", () => {
 	it.each([
 		"guest",
 		"pending",
-		"no-cookie",
 	])("locks longer windows for %s sessions before any rejected history request", async (session) => {
 		if (session === "guest")
 			apiMocks.fetchLoginUser.mockRejectedValue(new Error("unauthorized"));
 		if (session === "pending")
 			apiMocks.fetchLoginUser.mockReturnValue(new Promise(() => undefined));
-		if (session === "no-cookie")
-			Object.defineProperty(document, "cookie", {
-				configurable: true,
-				value: "",
-			});
 		apiMocks.fetchServerOnlineHistory.mockResolvedValue(
 			onlineHistoryResponse(),
 		);
@@ -117,6 +112,23 @@ describe("ServerDetailOnlineHistory", () => {
 		}
 		expect(apiMocks.fetchServerOnlineHistory).toHaveBeenCalledTimes(1);
 		expect(apiMocks.fetchServerOnlineHistory).toHaveBeenCalledWith(7, 1);
+	});
+
+	it("unlocks longer windows for a confirmed identity without readable cookies", async () => {
+		Object.defineProperty(document, "cookie", {
+			configurable: true,
+			value: "",
+		});
+		apiMocks.fetchServerOnlineHistory.mockResolvedValue(
+			onlineHistoryResponse(),
+		);
+		renderWithQuery(<ServerDetailOnlineHistory server_id="7" />);
+		const option = await screen.findByText("serverOnlineHistory.days30");
+		await waitFor(() =>
+			expect(option.parentElement).toHaveAttribute("aria-disabled", "false"),
+		);
+		await userEvent.setup().click(option);
+		expect(apiMocks.fetchServerOnlineHistory).toHaveBeenCalledWith(7, 30);
 	});
 
 	it("renders the loading state while history data is unavailable", () => {
@@ -151,6 +163,77 @@ describe("ServerDetailOnlineHistory", () => {
 		expect(
 			screen.queryByTestId("online-history-loading"),
 		).not.toBeInTheDocument();
+	});
+
+	it("does not combine the previous server's history with the next server's live status", async () => {
+		websocketMocks.lastData = {
+			servers: [
+				{ id: 7, last_active: "2026-10-14T12:34:56.000Z" },
+				{ id: 8, last_active: "2026-10-14T13:45:00.000Z" },
+			],
+		};
+		let resolveNext!: (value: OnlineHistoryResponse) => void;
+		apiMocks.fetchServerOnlineHistory
+			.mockResolvedValueOnce(onlineHistoryResponse())
+			.mockReturnValue(
+				new Promise<OnlineHistoryResponse>((resolve) => {
+					resolveNext = resolve;
+				}),
+			);
+		const { rerender } = renderWithQuery(
+			<ServerDetailOnlineHistory server_id="7" />,
+		);
+		expect(await screen.findByText("12:34:56")).toBeInTheDocument();
+		await waitFor(() =>
+			expect(
+				screen.getByText("serverOnlineHistory.days30").parentElement,
+			).toHaveAttribute("aria-disabled", "false"),
+		);
+
+		rerender(<ServerDetailOnlineHistory server_id="8" />);
+		expect(apiMocks.fetchServerOnlineHistory).toHaveBeenCalledWith(8, 1);
+		expect(screen.getByTestId("online-history-loading")).toBeInTheDocument();
+		expect(screen.queryByText("0.9%")).not.toBeInTheDocument();
+		expect(screen.queryByText("12:34:56")).not.toBeInTheDocument();
+		expect(screen.queryByText("13:45:00")).not.toBeInTheDocument();
+		expect(screen.queryByTestId("period-chip")).not.toBeInTheDocument();
+
+		const next = onlineHistoryResponse();
+		next.data.server_id = 8;
+		next.data.online_rate = 25;
+		await act(async () => resolveNext(next));
+		expect(await screen.findByText("25.0%")).toBeInTheDocument();
+		expect(screen.getByText("13:45:00")).toBeInTheDocument();
+		expect(screen.queryByText("0.9%")).not.toBeInTheDocument();
+	});
+
+	it("ignores a late history response after another server navigation", async () => {
+		const resolvers = new Map<number, (value: OnlineHistoryResponse) => void>();
+		apiMocks.fetchServerOnlineHistory.mockImplementation((serverId: number) =>
+			serverId === 7
+				? Promise.resolve(onlineHistoryResponse())
+				: new Promise<OnlineHistoryResponse>((resolve) => {
+						resolvers.set(serverId, resolve);
+					}),
+		);
+		const { rerender } = renderWithQuery(
+			<ServerDetailOnlineHistory server_id="7" />,
+		);
+		await screen.findByText("0.9%");
+		rerender(<ServerDetailOnlineHistory server_id="8" />);
+		rerender(<ServerDetailOnlineHistory server_id="9" />);
+		const abandoned = onlineHistoryResponse();
+		abandoned.data.server_id = 8;
+		abandoned.data.online_rate = 25;
+		await act(async () => resolvers.get(8)?.(abandoned));
+		expect(screen.getByTestId("online-history-loading")).toBeInTheDocument();
+		expect(screen.queryByText("25.0%")).not.toBeInTheDocument();
+		const latest = onlineHistoryResponse();
+		latest.data.server_id = 9;
+		latest.data.online_rate = 75;
+		await act(async () => resolvers.get(9)?.(latest));
+		expect(await screen.findByText("75.0%")).toBeInTheDocument();
+		expect(screen.queryByText("25.0%")).not.toBeInTheDocument();
 	});
 
 	it("renders daily totals and all groups when fewer than three days are available", async () => {
@@ -208,6 +291,37 @@ describe("ServerDetailOnlineHistory", () => {
 			2,
 		);
 		expect(segments[0].style.minWidth).toBe("2px");
+	});
+
+	it("retains the daily duration and period chip across a fall-back clock reversal", async () => {
+		const response = onlineHistoryResponse();
+		Object.assign(response.data, {
+			timezone: "America/New_York",
+			window_start: "2026-11-01T04:00:00.000Z",
+			window_end: "2026-11-02T05:00:00.000Z",
+			total_online_seconds: 1800,
+			daily: [{ date: "2026-11-01", online_seconds: 1800 }],
+			periods: [
+				{
+					start: "2026-11-01T05:45:00.000Z",
+					end: "2026-11-01T06:15:00.000Z",
+					ongoing: false,
+				},
+			],
+		});
+		apiMocks.fetchServerOnlineHistory.mockResolvedValue(response);
+		renderWithQuery(<ServerDetailOnlineHistory server_id="7" />);
+		const row = await screen.findByTestId("daily-online-day");
+		expect(within(row).getByText("30m")).toBeInTheDocument();
+		const chip = screen.getByTestId("period-chip");
+		expect(chip).toHaveTextContent("01:45 → 01:15");
+		expect(chip).toHaveTextContent("30m");
+		expect(screen.getByTestId("online-segment")).toHaveStyle({
+			width: "0%",
+			minWidth: "2px",
+		});
+		await userEvent.setup().hover(screen.getByTestId("online-segment"));
+		expect(await screen.findByRole("tooltip")).toHaveTextContent("30m");
 	});
 
 	it("keeps daily totals, carry-over chips and window markers consistent", async () => {

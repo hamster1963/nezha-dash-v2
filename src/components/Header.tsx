@@ -61,7 +61,7 @@ function Header() {
 		retry: false,
 	});
 
-	const { lastData, connected } = useWebSocketContext();
+	const { lastData, connected, reconnect } = useWebSocketContext();
 
 	const onlineCount = connected ? (lastData ? lastData.online || 0 : 0) : "...";
 
@@ -171,6 +171,8 @@ function Header() {
 					<Button
 						variant="outline"
 						size="sm"
+						onClick={connected ? undefined : reconnect}
+						aria-label={connected ? undefined : t("retry")}
 						className={cn(
 							"hover:bg-white dark:hover:bg-black cursor-default rounded-full flex items-center px-[9px] bg-white dark:bg-black",
 							{
@@ -260,16 +262,14 @@ export function RefreshToast() {
 
 	const { needReconnect } = useWebSocketContext();
 
-	if (!needReconnect) {
-		return null;
-	}
-
-	if (needReconnect) {
+	useEffect(() => {
+		if (!needReconnect) return;
 		sessionStorage.removeItem("needRefresh");
-		setTimeout(() => {
-			navigate(0);
-		}, 1000);
-	}
+		const timer = setTimeout(() => navigate(0), 1000);
+		return () => clearTimeout(timer);
+	}, [needReconnect, navigate]);
+
+	if (!needReconnect) return null;
 
 	return (
 		<div className="refresh-toast-animate fixed left-1/2 -translate-x-1/2 top-8 z-999 flex items-center justify-between gap-4 rounded-[50px] border border-solid bg-white px-2 py-1.5 shadow-xl shadow-black/5 dark:border-stone-700 dark:bg-stone-800 dark:shadow-none">
@@ -285,40 +285,18 @@ function DashboardLink() {
 	const { t } = useTranslation();
 	const { setNeedReconnect } = useWebSocketContext();
 	const previousLoginState = useRef<boolean | null>(null);
-	const {
-		data: userData,
-		isFetched,
-		isLoadingError,
-		isError,
-		refetch,
-	} = useLoginUser();
-
-	const isLogin = isError
-		? false
-		: userData
-			? !!userData?.data?.id && !!document.cookie
-			: false;
-
-	if (isLoadingError) {
-		previousLoginState.current = isLogin;
-	}
+	const { isAuthenticated: isLogin, authStatus } = useLoginUser();
 
 	useEffect(() => {
-		refetch();
-	}, [refetch]);
-
-	useEffect(() => {
-		if (isFetched || isError) {
-			// 只有当登录状态发生变化时才设置needReconnect
-			if (
-				previousLoginState.current !== null &&
-				previousLoginState.current !== isLogin
-			) {
-				setNeedReconnect(true);
-			}
-			previousLoginState.current = isLogin;
+		if (authStatus === "unknown") return;
+		if (
+			previousLoginState.current !== null &&
+			previousLoginState.current !== isLogin
+		) {
+			setNeedReconnect(true);
 		}
-	}, [isLogin, isError, isFetched, setNeedReconnect]);
+		previousLoginState.current = isLogin;
+	}, [isLogin, authStatus, setNeedReconnect]);
 
 	return (
 		<div className="flex items-center gap-2">

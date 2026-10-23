@@ -1,5 +1,5 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { MemoryRouter, useLocation } from "react-router-dom";
@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import Header, { RefreshToast } from "@/components/Header";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { CommandProvider } from "@/context/command-provider";
+import { ApiError } from "@/lib/http";
 import { createSettingResponse } from "@/test/fixtures";
 import { createTestQueryClient } from "@/test/utils";
 
@@ -73,9 +74,9 @@ function LocationProbe() {
 	return <p>{location.pathname}</p>;
 }
 
-function renderHeader(route = "/server/1") {
+function renderHeader(route = "/server/1", client = createTestQueryClient()) {
 	return render(
-		<QueryClientProvider client={createTestQueryClient()}>
+		<QueryClientProvider client={client}>
 			<MemoryRouter initialEntries={[route]}>
 				<ThemeProvider storageKey="header-theme-test">
 					<CommandProvider>
@@ -161,6 +162,38 @@ describe("Header", () => {
 		expect(screen.getByText("/")).toBeInTheDocument();
 	});
 
+	it("does not refresh on transient profile failures but refreshes on explicit sign-out", async () => {
+		const client = createTestQueryClient();
+		headerMocks.fetchLoginUser.mockResolvedValue(loginResponse());
+		renderHeader("/", client);
+		await waitFor(() =>
+			expect(screen.getAllByText("dashboard")).toHaveLength(2),
+		);
+		for (const error of [
+			new TypeError("offline"),
+			new ApiError("unavailable", 503, null),
+		]) {
+			headerMocks.fetchLoginUser.mockRejectedValue(error);
+			await act(async () => {
+				await client.refetchQueries({ queryKey: ["login-user"] });
+			});
+			await waitFor(() =>
+				expect(client.getQueryState(["login-user"])?.status).toBe("error"),
+			);
+			expect(screen.getAllByText("dashboard")).toHaveLength(2);
+			expect(headerMocks.setNeedReconnect).not.toHaveBeenCalled();
+		}
+		headerMocks.fetchLoginUser.mockRejectedValue(
+			new ApiError("unauthorized", 401, null),
+		);
+		await act(async () => {
+			await client.refetchQueries({ queryKey: ["login-user"] });
+		});
+		await waitFor(() =>
+			expect(headerMocks.setNeedReconnect).toHaveBeenCalledWith(true),
+		);
+	});
+
 	it("uses the offline display and login links when websocket and auth are unavailable", async () => {
 		headerMocks.connected = false;
 
@@ -229,6 +262,34 @@ describe("Header", () => {
 describe("RefreshToast", () => {
 	beforeEach(() => {
 		headerMocks.needReconnect = false;
+	});
+
+	it("owns one refresh timer and cancels it on dismissal or unmount", () => {
+		vi.useFakeTimers();
+		headerMocks.needReconnect = true;
+		const view = renderInRouter(<RefreshToast />);
+		expect(vi.getTimerCount()).toBe(1);
+		view.rerender(
+			<MemoryRouter>
+				<RefreshToast />
+			</MemoryRouter>,
+		);
+		expect(vi.getTimerCount()).toBe(1);
+		headerMocks.needReconnect = false;
+		view.rerender(
+			<MemoryRouter>
+				<RefreshToast />
+			</MemoryRouter>,
+		);
+		expect(vi.getTimerCount()).toBe(0);
+		headerMocks.needReconnect = true;
+		view.rerender(
+			<MemoryRouter>
+				<RefreshToast />
+			</MemoryRouter>,
+		);
+		view.unmount();
+		expect(vi.getTimerCount()).toBe(0);
 	});
 
 	it("renders only while reconnect refresh is needed", () => {

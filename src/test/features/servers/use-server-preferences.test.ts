@@ -82,6 +82,24 @@ describe("server preferences", () => {
 		expect(result.current.showServices).toBe("0");
 		expect(localStorage.getItem("showServices")).toBe("1");
 	});
+	it.each([
+		false,
+		true,
+	])("restores desired services after cold loading (forced=%s)", (forced) => {
+		window.ForceShowServices = forced;
+		localStorage.setItem("showServices", forced ? "0" : "1");
+		const { result, rerender } = renderHook(
+			({ available }) => useServerPreferences(available, null),
+			{ initialProps: { available: false } },
+		);
+		expect(result.current.showServices).toBe("0");
+		rerender({ available: true });
+		expect(result.current.showServices).toBe("1");
+		rerender({ available: false });
+		rerender({ available: true });
+		expect(result.current.showServices).toBe("1");
+		expect(localStorage.getItem("showServices")).toBe(forced ? "0" : "1");
+	});
 	it("does not apply desktop inline defaults until width reaches 768, nor reset them on shrinking", () => {
 		vi.stubGlobal("innerWidth", 767);
 		window.ForceCardInline = true;

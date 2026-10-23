@@ -24,6 +24,8 @@ export type DaySegment = {
 	period: OnlinePeriod;
 	segStart: dayjs.Dayjs;
 	segEnd: dayjs.Dayjs;
+	/** 实际经过的秒数，与 DST 回拨时可能为零的挂钟投影宽度无关。 */
+	elapsedSeconds: number;
 	leftPct: number;
 	widthPct: number;
 	/** 该段是否仍然进行中（只有结束于真实会话末尾的段才为 true） */
@@ -184,18 +186,19 @@ function buildParsedDaySegments(
 		const rightPct =
 			segEnd.valueOf() === upper ? 100 : wallClockPercent(segEnd);
 		const widthPct = Math.max(0, Math.min(rightPct - leftPct, 100 - leftPct));
-		return widthPct > 0
-			? [
-					{
-						period,
-						segStart,
-						segEnd,
-						leftPct,
-						widthPct,
-						live: live && segEnd.valueOf() === end.valueOf(),
-					},
-				]
-			: [];
+		// DST 回拨可能使挂钟终点早于/等于起点，但真实时间区间仍然有效。
+		// 保留区间用于统计和列表；时间轴用最小宽度标记不可展开的挂钟投影。
+		return [
+			{
+				period,
+				segStart,
+				segEnd,
+				elapsedSeconds: segEnd.diff(segStart, "second"),
+				leftPct,
+				widthPct,
+				live: live && segEnd.valueOf() === end.valueOf(),
+			},
+		];
 	});
 }
 
@@ -234,7 +237,7 @@ export function buildDailyOnlineRows(
 			segments,
 			window,
 			online_seconds: segments.reduce(
-				(sum, segment) => sum + segment.segEnd.diff(segment.segStart, "second"),
+				(sum, segment) => sum + segment.elapsedSeconds,
 				0,
 			),
 		};
@@ -257,7 +260,7 @@ export function groupOnlineRows(
 				original: segment.period,
 			})),
 			total: row.segments.reduce(
-				(sum, segment) => sum + segment.segEnd.diff(segment.segStart, "second"),
+				(sum, segment) => sum + segment.elapsedSeconds,
 				0,
 			),
 		}))

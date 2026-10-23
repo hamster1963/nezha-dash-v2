@@ -8,7 +8,7 @@ export function useServerPreferences(
 ) {
 	const { forceShowServices, forceShowMap, forceCardInline } =
 		useRuntimeConfig();
-	const [showServices, setShowServices] = useState<string>("0");
+	const [desiredShowServices, setShowServices] = useState<string>("0");
 	const [showMap, setShowMap] = useState<string>("0");
 	const [inline, setInline] = useState<string>("0");
 	const hasRestoredScroll = useRef(false);
@@ -49,11 +49,7 @@ export function useServerPreferences(
 		}
 	}, [forceShowServices]);
 
-	useEffect(() => {
-		if (!hasServices) {
-			setShowServices("0");
-		}
-	}, [hasServices]);
+	const showServices = hasServices ? desiredShowServices : "0";
 
 	useEffect(() => {
 		const checkInlineSettings = () => {
@@ -105,7 +101,7 @@ export function useServerPreferences(
 		localStorage.setItem("showMap", value);
 	};
 	const toggleServices = () => {
-		const value = showServices === "0" ? "1" : "0";
+		const value = desiredShowServices === "0" ? "1" : "0";
 		setShowServices(value);
 		localStorage.setItem("showServices", value);
 	};

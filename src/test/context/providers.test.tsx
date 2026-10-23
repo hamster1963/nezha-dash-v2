@@ -1,4 +1,10 @@
-import { act, render, renderHook, screen } from "@testing-library/react";
+import {
+	act,
+	fireEvent,
+	render,
+	renderHook,
+	screen,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -125,6 +131,7 @@ function WebSocketProbe() {
 		lastData,
 		messageHistory,
 		needReconnect,
+		reconnect,
 		setNeedReconnect,
 	} = useWebSocketContext();
 
@@ -137,6 +144,9 @@ function WebSocketProbe() {
 				{messageHistory.reduce((total, item) => total + item.servers.length, 0)}
 			</p>
 			<p>{needReconnect ? "needs-reconnect" : "stable"}</p>
+			<button type="button" onClick={reconnect}>
+				reconnect
+			</button>
 			<button type="button" onClick={() => setNeedReconnect(true)}>
 				mark
 			</button>
@@ -346,6 +356,76 @@ describe("WebSocketProvider", () => {
 			"Failed to parse WebSocket message:",
 			expect.any(TypeError),
 		);
+	});
+
+	it.each([
+		"online",
+		"focus",
+	])("recovers after the finite retry budget on %s, without duplicate sockets", (event) => {
+		vi.useFakeTimers();
+		renderWebSocketProvider(<WebSocketProbe />);
+		for (let attempt = 0; attempt <= 30; attempt++) {
+			act(() =>
+				FakeWebSocket.instances[FakeWebSocket.instances.length - 1]?.close(),
+			);
+			act(() => vi.advanceTimersByTime(3000));
+		}
+		expect(FakeWebSocket.instances).toHaveLength(31);
+		act(() => vi.advanceTimersByTime(60_000));
+		expect(FakeWebSocket.instances).toHaveLength(31);
+		act(() => {
+			window.dispatchEvent(new Event(event));
+			window.dispatchEvent(new Event(event));
+		});
+		expect(FakeWebSocket.instances).toHaveLength(32);
+		act(() =>
+			FakeWebSocket.instances[FakeWebSocket.instances.length - 1]?.open(),
+		);
+		expect(screen.getByText("connected")).toBeInTheDocument();
+		act(() => window.dispatchEvent(new Event(event)));
+		expect(FakeWebSocket.instances).toHaveLength(32);
+	});
+
+	it("cancels manual reconnect timers on unmount and resets an interrupted connecting guard", () => {
+		vi.useFakeTimers();
+		const view = renderWebSocketProvider(<WebSocketProbe />);
+		fireEvent.click(screen.getByRole("button", { name: "reconnect" }));
+		fireEvent.click(screen.getByRole("button", { name: "reconnect" }));
+		act(() => vi.advanceTimersByTime(1000));
+		expect(FakeWebSocket.instances).toHaveLength(2);
+		fireEvent.click(screen.getByRole("button", { name: "reconnect" }));
+		view.unmount();
+		act(() => {
+			vi.advanceTimersByTime(60_000);
+			window.dispatchEvent(new Event("online"));
+			window.dispatchEvent(new Event("focus"));
+		});
+		expect(FakeWebSocket.instances).toHaveLength(2);
+	});
+
+	it("cancels scheduled reconnects on unmount and before unload", () => {
+		vi.useFakeTimers();
+		const view = renderWebSocketProvider(<WebSocketProbe />);
+		act(() => FakeWebSocket.instances[0].close());
+		act(() => window.dispatchEvent(new Event("beforeunload")));
+		act(() => vi.advanceTimersByTime(60_000));
+		expect(FakeWebSocket.instances).toHaveLength(1);
+		view.unmount();
+	});
+
+	it("can recover when navigation is cancelled after beforeunload", () => {
+		vi.useFakeTimers();
+		renderWebSocketProvider(<WebSocketProbe />);
+		act(() => FakeWebSocket.instances[0].open());
+		act(() => window.dispatchEvent(new Event("beforeunload")));
+		act(() => window.dispatchEvent(new Event("focus")));
+		expect(FakeWebSocket.instances).toHaveLength(2);
+		act(() => FakeWebSocket.instances[1].open());
+		expect(screen.getByText("connected")).toBeInTheDocument();
+		act(() => window.dispatchEvent(new Event("beforeunload")));
+		fireEvent.click(screen.getByRole("button", { name: "reconnect" }));
+		act(() => vi.advanceTimersByTime(1000));
+		expect(FakeWebSocket.instances).toHaveLength(3);
 	});
 
 	it("exposes manual reconnect state separately from socket state", async () => {

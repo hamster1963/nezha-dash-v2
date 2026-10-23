@@ -196,5 +196,6 @@
 		"periodsOffline": "离线",
 		"expandMore": "展开更多",
 		"today": "今天"
-	}
+	},
+	"retry": "重试"
 }

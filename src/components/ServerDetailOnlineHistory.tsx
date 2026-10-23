@@ -1,4 +1,4 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -247,8 +247,7 @@ export default function ServerDetailOnlineHistory({
 }) {
 	const { t } = useTranslation();
 	const { lastData } = useWebSocketContext();
-	const { data: userData, isError: isLoginError } = useLoginUser();
-	const isLogin = !isLoginError && !!userData?.data?.id && !!document.cookie;
+	const { isAuthenticated: isLogin } = useLoginUser();
 	const [days, setDays] = useState(DAY_OPTIONS[0]);
 	const [guestMaxDays, setGuestMaxDays] = useState<number | null>(null);
 	const [periodMode, setPeriodMode] = useState<PeriodMode>("online");
@@ -269,7 +268,11 @@ export default function ServerDetailOnlineHistory({
 	} = useQuery({
 		queryKey: ["online-history", server_id, requestDays],
 		queryFn: () => fetchServerOnlineHistory(Number(server_id), requestDays),
-		placeholderData: isLogin ? keepPreviousData : undefined,
+		// 只在同一节点切换天数时保留内容，不能把上一节点历史与当前实时状态混合。
+		placeholderData: isLogin
+			? (previousData, previousQuery) =>
+					previousQuery?.queryKey[1] === server_id ? previousData : undefined
+			: undefined,
 		refetchOnMount: true,
 		refetchOnWindowFocus: true,
 		refetchInterval: 60000,
@@ -567,12 +570,7 @@ export default function ServerDetailOnlineHistory({
 																			)}
 																</span>
 																<span className="text-muted-foreground">
-																	{formatDuration(
-																		segment.segEnd.diff(
-																			segment.segStart,
-																			"second",
-																		),
-																	)}
+																	{formatDuration(segment.elapsedSeconds)}
 																</span>
 															</div>
 														</TooltipContent>

@@ -126,12 +126,7 @@ export function NetworkChart({
 }) {
 	const { t } = useTranslation();
 	const [period, setPeriod] = React.useState<MonitorPeriod>("1d");
-	const { data: userData, isError: isLoginError } = useLoginUser();
-	const isLogin = isLoginError
-		? false
-		: userData
-			? !!userData?.data?.id && !!document.cookie
-			: false;
+	const { isAuthenticated: isLogin } = useLoginUser();
 
 	React.useEffect(() => {
 		if (!isLogin && period !== "1d") {

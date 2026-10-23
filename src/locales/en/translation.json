@@ -202,5 +202,6 @@
 		"periodsOffline": "Offline",
 		"expandMore": "Expand more",
 		"today": "Today"
-	}
+	},
+	"retry": "Retry"
 }

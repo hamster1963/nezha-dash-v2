@@ -50,6 +50,8 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 	const maxReconnectAttempts = 30;
 	const reconnectAttempts = useRef(0);
 	const isConnecting = useRef(false);
+	const active = useRef(false);
+	const lastRecoveryAt = useRef(Number.NEGATIVE_INFINITY);
 
 	const cleanup = useCallback(() => {
 		if (ws.current) {
@@ -71,17 +73,25 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 			clearTimeout(reconnectTimeout.current);
 			reconnectTimeout.current = null;
 		}
+		isConnecting.current = false;
 		setConnected(false);
 	}, []);
 
 	const connect = useCallback(() => {
-		if (isConnecting.current) {
-			console.log("Connection already in progress");
-			return;
-		}
+		if (!active.current || isConnecting.current) return;
 
 		cleanup();
 		isConnecting.current = true;
+
+		const scheduleRetry = () => {
+			if (!active.current || reconnectAttempts.current >= maxReconnectAttempts)
+				return;
+			reconnectTimeout.current = setTimeout(() => {
+				reconnectTimeout.current = null;
+				reconnectAttempts.current++;
+				connect();
+			}, 3000);
+		};
 
 		try {
 			const wsUrl = new URL(url, window.location.origin);
@@ -102,12 +112,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 				ws.current = null;
 				isConnecting.current = false;
 
-				if (reconnectAttempts.current < maxReconnectAttempts) {
-					reconnectTimeout.current = setTimeout(() => {
-						reconnectAttempts.current++;
-						connect();
-					}, 3000);
-				}
+				scheduleRetry();
 			};
 
 			ws.current.onmessage = (event) => {
@@ -135,30 +140,56 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 		} catch (error) {
 			console.error("WebSocket connection error:", error);
 			isConnecting.current = false;
+			scheduleRetry();
 		}
 	}, [cleanup, url]);
 
-	const reconnect = () => {
+	const reconnect = useCallback(() => {
+		if (!active.current) return;
 		reconnectAttempts.current = 0;
-		// 等待一个小延时确保清理完成
 		cleanup();
-		setTimeout(() => {
+		// The same tracked timer owns both scheduled and manual reconnects.
+		reconnectTimeout.current = setTimeout(() => {
+			reconnectTimeout.current = null;
 			connect();
 		}, 1000);
-	};
+	}, [cleanup, connect]);
 
 	useEffect(() => {
+		active.current = true;
+		reconnectAttempts.current = 0;
+		lastRecoveryAt.current = Number.NEGATIVE_INFINITY;
+		setLastData(null);
+		setMessageHistory([]);
 		connect();
 
-		// 添加页面卸载事件监听
+		const recover = () => {
+			if (
+				!active.current ||
+				navigator.onLine === false ||
+				isConnecting.current ||
+				ws.current?.readyState === WebSocket.OPEN ||
+				reconnectTimeout.current ||
+				Date.now() - lastRecoveryAt.current < 3000
+			)
+				return;
+			lastRecoveryAt.current = Date.now();
+			reconnectAttempts.current = 0;
+			connect();
+		};
 		const handleBeforeUnload = () => {
+			// A leave-page confirmation may be cancelled. Only unmount deactivates
+			// this provider; focus/online/manual recovery must remain usable.
 			cleanup();
 		};
-
+		window.addEventListener("online", recover);
+		window.addEventListener("focus", recover);
 		window.addEventListener("beforeunload", handleBeforeUnload);
-
 		return () => {
+			active.current = false;
 			cleanup();
+			window.removeEventListener("online", recover);
+			window.removeEventListener("focus", recover);
 			window.removeEventListener("beforeunload", handleBeforeUnload);
 		};
 	}, [cleanup, connect]);

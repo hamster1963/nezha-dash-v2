@@ -28,12 +28,7 @@ export default function ServerDetailChart({
 	);
 
 	// Check if user is logged in
-	const { data: userData, isError: isLoginError } = useLoginUser();
-	const isLogin = isLoginError
-		? false
-		: userData
-			? !!userData?.data?.id && !!document.cookie
-			: false;
+	const { isAuthenticated: isLogin } = useLoginUser();
 
 	const { data: settingData } = useQuery({
 		queryKey: ["setting"],

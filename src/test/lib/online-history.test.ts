@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+	buildDailyOnlineRows,
 	buildDaySegments,
 	buildDayWindow,
 	buildOfflineGroups,
 	dailyOnlineRate,
 	formatPeriodMoment,
 	groupOnlinePeriods,
+	groupOnlineRows,
 	panelDay,
 	panelNextDayStart,
 } from "@/lib/online-history";
@@ -212,6 +214,63 @@ describe("formatPeriodMoment", () => {
 });
 
 describe("buildDaySegments", () => {
+	it.each([
+		["2026-11-01T05:45:00.000Z", "2026-11-01T06:15:00.000Z", 1800],
+		["2026-11-01T05:30:00.000Z", "2026-11-01T06:30:00.000Z", 3600],
+	])("retains positive elapsed time when fall-back reverses or repeats the wall clock (%s)", (start, end, seconds) => {
+		const periods = [period(start, end, true)];
+		const segments = buildDaySegments(
+			periods,
+			"2026-11-01",
+			"America/New_York",
+		);
+		expect(segments).toHaveLength(1);
+		expect(segments[0].segStart.toISOString()).toBe(start);
+		expect(segments[0].segEnd.toISOString()).toBe(end);
+		expect(segments[0].elapsedSeconds).toBe(seconds);
+		expect(segments[0].widthPct).toBe(0);
+		expect(segments[0].live).toBe(true);
+
+		const [group] = groupOnlinePeriods(periods, "America/New_York");
+		expect(group.total).toBe(seconds);
+		expect(group.chips).toHaveLength(1);
+		expect(group.chips[0].original).toEqual(periods[0]);
+		expect(group.chips[0].ongoing).toBe(true);
+	});
+
+	it("clips real intervals at the query window even when its wall clock runs backwards", () => {
+		const periods = [
+			period("2026-11-01T05:00:00.000Z", "2026-11-01T07:00:00.000Z", true),
+		];
+		const start = "2026-11-01T05:45:00.000Z";
+		const end = "2026-11-01T06:15:00.000Z";
+		const [segment] = buildDaySegments(
+			periods,
+			"2026-11-01",
+			"America/New_York",
+			start,
+			end,
+		);
+		expect(segment.segStart.toISOString()).toBe(start);
+		expect(segment.segEnd.toISOString()).toBe(end);
+		expect(segment.elapsedSeconds).toBe(1800);
+		expect(segment.widthPct).toBe(0);
+		expect(segment.live).toBe(false);
+	});
+
+	it("still rejects reversed and zero-length real intervals", () => {
+		expect(
+			buildDaySegments(
+				[
+					period("2026-11-01T06:15:00.000Z", "2026-11-01T05:45:00.000Z"),
+					period("2026-11-01T06:15:00.000Z", "2026-11-01T06:15:00.000Z"),
+				],
+				"2026-11-01",
+				"UTC",
+			),
+		).toEqual([]);
+	});
+
 	it("maps positions by panel wall clock on a spring-forward day", () => {
 		const tz = "America/New_York";
 		const [fullDay] = buildDaySegments(
@@ -250,6 +309,7 @@ describe("buildDaySegments", () => {
 		);
 		expect(fullDay.leftPct).toBe(0);
 		expect(fullDay.widthPct).toBe(100);
+		expect(fullDay.elapsedSeconds).toBe(25 * 3600);
 	});
 
 	it("marks only the segment ending at the live session end as ongoing", () => {
@@ -266,5 +326,35 @@ describe("buildDaySegments", () => {
 		expect(currentDay.live).toBe(true);
 		expect(currentDay.leftPct).toBe(0);
 		expect(currentDay.widthPct).toBeCloseTo((6 / 24) * 100, 5);
+	});
+});
+
+describe("buildDailyOnlineRows", () => {
+	it("counts a reversed-clock session once in daily totals and online lists", () => {
+		const periods = [
+			period("2026-11-01T05:45:00.000Z", "2026-11-01T06:15:00.000Z"),
+		];
+		const dailyStats = [daily("2026-11-01", 1800)];
+		const start = "2026-11-01T04:00:00.000Z";
+		const end = "2026-11-02T05:00:00.000Z";
+		const tz = "America/New_York";
+		const rows = buildDailyOnlineRows(periods, dailyStats, start, end, tz);
+		expect(rows[0].online_seconds).toBe(1800);
+		expect(rows[0].window.seconds).toBe(25 * 3600);
+		expect(rows[0].segments).toHaveLength(1);
+		const [online] = groupOnlineRows(rows, tz);
+		expect(online.total).toBe(1800);
+		expect(online.chips).toHaveLength(1);
+		expect(online.chips[0].start.format("HH:mm")).toBe("01:45");
+		expect(online.chips[0].end.format("HH:mm")).toBe("01:15");
+		const [offline] = buildOfflineGroups(
+			periods,
+			dailyStats,
+			start,
+			end,
+			false,
+			tz,
+		);
+		expect(offline.total + online.total).toBe(rows[0].window.seconds);
 	});
 });

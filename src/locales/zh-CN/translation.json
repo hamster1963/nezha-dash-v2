@@ -128,7 +128,10 @@
 		"loginRequired": "请登录后查看",
 		"period1d": "1 天",
 		"period7d": "7 天",
-		"period30d": "30 天"
+		"period30d": "30 天",
+		"loadError": "无法加载监控数据。",
+		"staleData": "监控数据刷新失败，正在显示上次获取的数据。",
+		"retry": "重试"
 	},
 	"pwa": {
 		"offlineReady": "应用可以离线使用了",

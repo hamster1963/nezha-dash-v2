@@ -128,7 +128,10 @@
 		"period1d": "1 天",
 		"period7d": "7 天",
 		"period30d": "30 天",
-		"loginRequired": "請先登入才能查看"
+		"loginRequired": "請先登入才能查看",
+		"loadError": "無法載入監控資料。",
+		"staleData": "監控資料更新失敗，正在顯示上次取得的資料。",
+		"retry": "重試"
 	},
 	"billingInfo": {
 		"remaining": "剩餘天數",

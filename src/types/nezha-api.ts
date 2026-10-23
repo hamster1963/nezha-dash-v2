@@ -92,8 +92,8 @@ export interface MonitorResponse {
 export type ServerMonitorChart = {
 	[key: string]: {
 		created_at: number;
-		avg_delay: number;
-		packet_loss?: number;
+		avg_delay: number | null | undefined;
+		packet_loss?: number | null;
 	}[];
 };
 
@@ -104,8 +104,8 @@ export interface NezhaMonitor {
 	server_id: number;
 	server_name: string;
 	created_at: number[];
-	avg_delay: number[];
-	packet_loss?: number[];
+	avg_delay: (number | null)[];
+	packet_loss?: (number | null)[];
 }
 
 export interface ServiceResponse {

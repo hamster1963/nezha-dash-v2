@@ -34,6 +34,10 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+	buildMonitorSeries,
+	type MonitorChartPoint,
+} from "@/features/network-monitor/monitor-series";
 import { useActiveIndicator } from "@/hooks/use-active-indicator";
 import { useLoginUser } from "@/hooks/use-login-user";
 import { fetchMonitor, type MonitorPeriod } from "@/lib/nezha-api";
@@ -44,79 +48,8 @@ import NetworkChartLoading from "./NetworkChartLoading";
 import { Label } from "./ui/label";
 import { Switch } from "./ui/switch";
 
-interface ResultItem {
-	created_at: number;
-	[key: string]: number;
-}
-
 const MIN_PERIOD_LOADING_MS = 500;
-
-/**
- * Helper method to calculate packet loss from delay data
- */
-const calculatePacketLoss = (delays: number[]): number[] => {
-	if (!delays || delays.length === 0) return [];
-
-	const packetLossRates: number[] = [];
-	const windowSize = Math.min(10, Math.max(3, Math.floor(delays.length / 10)));
-	const timeoutThreshold = 3000;
-	const extremeDelayThreshold = 10000;
-
-	for (let i = 0; i < delays.length; i++) {
-		const currentDelay = delays[i];
-		let lossRate = 0;
-
-		if (
-			currentDelay === 0 ||
-			currentDelay === null ||
-			currentDelay === undefined
-		) {
-			lossRate = 100;
-		} else if (currentDelay >= extremeDelayThreshold) {
-			lossRate = Math.min(
-				95,
-				60 + (currentDelay - extremeDelayThreshold) / 1000,
-			);
-		} else if (currentDelay >= timeoutThreshold) {
-			lossRate = Math.min(50, (currentDelay - timeoutThreshold) / 200);
-		} else {
-			const start = Math.max(0, i - Math.floor(windowSize / 2));
-			const end = Math.min(delays.length, i + Math.ceil(windowSize / 2));
-			const windowDelays = delays.slice(start, end).filter((d) => d > 0);
-
-			if (windowDelays.length > 2) {
-				const mean =
-					windowDelays.reduce((sum, d) => sum + d, 0) / windowDelays.length;
-				const variance =
-					windowDelays.reduce((sum, d) => sum + (d - mean) ** 2, 0) /
-					windowDelays.length;
-				const standardDeviation = Math.sqrt(variance);
-				const coefficientOfVariation = standardDeviation / mean;
-
-				if (coefficientOfVariation > 0.8) {
-					lossRate = Math.min(25, coefficientOfVariation * 15);
-				} else if (coefficientOfVariation > 0.5) {
-					lossRate = Math.min(10, coefficientOfVariation * 8);
-				} else if (coefficientOfVariation > 0.3) {
-					lossRate = Math.min(5, coefficientOfVariation * 5);
-				}
-
-				if (currentDelay > mean * 2.5) {
-					lossRate += Math.min(15, (currentDelay / mean - 2.5) * 10);
-				}
-			}
-		}
-
-		if (i > 0) {
-			const alpha = 0.3;
-			lossRate = alpha * lossRate + (1 - alpha) * packetLossRates[i - 1];
-		}
-
-		packetLossRates.push(Math.max(0, Math.min(100, lossRate)));
-	}
-
-	return packetLossRates.map((rate) => Number(rate.toFixed(2)));
-};
+const EMPTY_MONITORS: readonly NezhaMonitor[] = [];
 
 export function NetworkChart({
 	server_id,
@@ -135,79 +68,104 @@ export function NetworkChart({
 		}
 	}, [isLogin, period]);
 
-	const { data: monitorData, isPlaceholderData } = useQuery({
+	const {
+		data: monitorData,
+		isPending,
+		isError,
+		isFetching,
+		isPlaceholderData,
+		refetch,
+	} = useQuery({
 		queryKey: ["monitor", server_id, period],
 		queryFn: () => fetchMonitor(server_id, period),
 		enabled: show,
-		placeholderData: keepPreviousData,
+		placeholderData: (previousData, previousQuery) =>
+			previousQuery?.queryKey[1] === server_id
+				? keepPreviousData(previousData)
+				: undefined,
+		retry: false,
 		refetchOnMount: true,
 		refetchOnWindowFocus: true,
 		refetchInterval: 10000,
 	});
 
-	if (!monitorData) return <NetworkChartLoading />;
+	const monitors = monitorData?.success
+		? (monitorData.data ?? EMPTY_MONITORS)
+		: EMPTY_MONITORS;
+	const { chartData, formattedData, chartDataKey } = useMemo(
+		() => buildMonitorSeries(monitors),
+		[monitors],
+	);
+	const chartConfig = useMemo(
+		() =>
+			({
+				avg_delay: { label: t("monitor.avgDelay") },
+				...chartDataKey.reduce((config, key) => {
+					config[key] = { label: key };
+					return config;
+				}, {} as ChartConfig),
+			}) satisfies ChartConfig,
+		[chartDataKey, t],
+	);
+	const hasError = isError || monitorData?.success === false;
+	const hasCachedData = !!monitorData?.success;
+	const retryButton = (
+		<button
+			type="button"
+			disabled={isFetching}
+			onClick={() => void refetch()}
+			className="rounded-md border px-3 py-1.5 text-xs font-medium disabled:opacity-50"
+		>
+			{t("monitor.retry")}
+		</button>
+	);
 
-	if (!monitorData.success || !monitorData.data?.length) {
+	if (isPending) return <NetworkChartLoading />;
+
+	if (hasError && !hasCachedData) {
 		return (
-			<>
-				<div className="flex flex-col items-center justify-center">
-					<p className="text-sm font-medium opacity-40"></p>
-					<p className="text-sm font-medium opacity-40 mb-4">
-						{t("monitor.noData")}
-					</p>
-				</div>
-				<NetworkChartLoading />
-			</>
+			<div
+				role="alert"
+				className="flex min-h-62.5 flex-col items-center justify-center gap-3 text-sm"
+			>
+				<p className="text-destructive">{t("monitor.loadError")}</p>
+				{retryButton}
+			</div>
 		);
 	}
 
-	const transformedData = transformData(monitorData.data);
-
-	const formattedData = formatData(monitorData.data);
-
-	const monitorInfoByName = new Map(
-		monitorData.data.map((item) => [
-			item.monitor_name,
-			{ id: item.monitor_id, displayIndex: item.display_index },
-		]),
-	);
-	const chartDataKey = Object.keys(transformedData).sort((a, b) => {
-		const aInfo = monitorInfoByName.get(a);
-		const bInfo = monitorInfoByName.get(b);
-		if (!aInfo && !bInfo) return a.localeCompare(b);
-		if (!aInfo) return 1;
-		if (!bInfo) return -1;
-
-		const indexDiff = (bInfo.displayIndex ?? 0) - (aInfo.displayIndex ?? 0);
-		if (indexDiff !== 0) return indexDiff;
-
-		return aInfo.id - bInfo.id;
-	});
-
-	const initChartConfig = {
-		avg_delay: {
-			label: t("monitor.avgDelay"),
-		},
-		...chartDataKey.reduce((acc, key) => {
-			acc[key] = {
-				label: key,
-			};
-			return acc;
-		}, {} as ChartConfig),
-	} satisfies ChartConfig;
-
 	return (
-		<NetworkChartClient
-			chartDataKey={chartDataKey}
-			chartConfig={initChartConfig}
-			chartData={transformedData}
-			serverName={monitorData.data[0].server_name}
-			formattedData={formattedData}
-			isPeriodLoading={isPlaceholderData}
-			period={period}
-			onPeriodChange={setPeriod}
-			isLogin={isLogin}
-		/>
+		<div className="space-y-4">
+			{hasError && (
+				<div
+					role="status"
+					className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs"
+				>
+					<p>{t("monitor.staleData")}</p>
+					{retryButton}
+				</div>
+			)}
+			{monitors.length === 0 ? (
+				<div
+					role="status"
+					className="flex min-h-62.5 items-center justify-center text-sm text-muted-foreground"
+				>
+					{t("monitor.noData")}
+				</div>
+			) : (
+				<NetworkChartClient
+					chartDataKey={chartDataKey}
+					chartConfig={chartConfig}
+					chartData={chartData}
+					serverName={monitors[0].server_name}
+					formattedData={formattedData}
+					isPeriodLoading={isPlaceholderData}
+					period={period}
+					onPeriodChange={setPeriod}
+					isLogin={isLogin}
+				/>
+			)}
+		</div>
 	);
 }
 
@@ -226,7 +184,7 @@ export const NetworkChartClient = React.memo(function NetworkChart({
 	chartConfig: ChartConfig;
 	chartData: ServerMonitorChart;
 	serverName: string;
-	formattedData: ResultItem[];
+	formattedData: MonitorChartPoint[];
 	isPeriodLoading: boolean;
 	period: MonitorPeriod;
 	onPeriodChange: (period: MonitorPeriod) => void;
@@ -321,18 +279,18 @@ export const NetworkChartClient = React.memo(function NetworkChart({
 	);
 
 	const chartStats = useMemo(() => {
-		const stats: { [key: string]: { minDelay: number; maxDelay: number } } = {};
+		const stats: {
+			[key: string]: { minDelay: number | null; maxDelay: number | null };
+		} = {};
 
 		for (const key of chartDataKey) {
-			const data = chartData[key] || [];
-			if (data.length > 0) {
-				const delays = data.map((item) => item.avg_delay);
-				const minDelay = Math.min(...delays);
-				const maxDelay = Math.max(...delays);
-				stats[key] = { minDelay, maxDelay };
-			} else {
-				stats[key] = { minDelay: 0, maxDelay: 0 };
-			}
+			const delays = (chartData[key] ?? [])
+				.map((sample) => sample.avg_delay)
+				.filter((delay): delay is number => delay != null);
+			stats[key] = {
+				minDelay: delays.length ? Math.min(...delays) : null,
+				maxDelay: delays.length ? Math.max(...delays) : null,
+			};
 		}
 
 		return stats;
@@ -347,7 +305,7 @@ export const NetworkChartClient = React.memo(function NetworkChart({
 
 				// Calculate average packet loss if available
 				const packetLossData = monitorData.reduce<number[]>((acc, item) => {
-					if (item.packet_loss !== undefined) {
+					if (item.packet_loss != null) {
 						acc.push(item.packet_loss);
 					}
 					return acc;
@@ -370,14 +328,14 @@ export const NetworkChartClient = React.memo(function NetworkChart({
 						</span>
 						<div className="flex flex-col gap-0.5">
 							<span className="text-md font-semibold leading-none sm:text-xl">
-								{lastDelay === undefined ? "—" : `${lastDelay.toFixed(2)}ms`}
+								{lastDelay == null ? "—" : `${lastDelay.toFixed(2)}ms`}
 							</span>
 							<div className="flex items-center gap-2 text-[12px]">
 								<span className="text-green-600 dark:text-green-400">
-									↓{stats.minDelay.toFixed(0)}
+									↓{stats.minDelay?.toFixed(0) ?? "—"}
 								</span>
 								<span className="text-red-600 dark:text-red-500">
-									↑{stats.maxDelay.toFixed(0)}
+									↑{stats.maxDelay?.toFixed(0) ?? "—"}
 								</span>
 								{avgPacketLoss !== null && (
 									<span className="text-muted-foreground flex items-center gap-1">
@@ -468,7 +426,7 @@ export const NetworkChartClient = React.memo(function NetworkChart({
 			baseData = chartData[selectedChart].map((item) => ({
 				created_at: item.created_at,
 				avg_delay: item.avg_delay,
-				packet_loss: item.packet_loss ?? 0,
+				packet_loss: item.packet_loss,
 			}));
 		}
 
@@ -524,14 +482,14 @@ export const NetworkChartClient = React.memo(function NetworkChart({
 			if (index < windowSize - 1) return point;
 
 			const window = data.slice(index - windowSize + 1, index + 1);
-			const smoothed = { ...point } as ResultItem;
+			const smoothed = { ...point } as MonitorChartPoint;
 
 			// Special handling for single chart selection
 			if (activeCharts.length === 1) {
 				// Process avg_delay for single chart
 				const values = window
-					.map((w) => w.avg_delay as number)
-					.filter((v) => v !== undefined && v !== null);
+					.map((w) => w.avg_delay)
+					.filter((value): value is number => value != null);
 
 				if (values.length > 0) {
 					const processed = processValues(values);
@@ -553,7 +511,7 @@ export const NetworkChartClient = React.memo(function NetworkChart({
 				keysToProcess.forEach((key) => {
 					const values = window
 						.map((w) => w[key])
-						.filter((v) => v !== undefined && v !== null) as number[];
+						.filter((value): value is number => value != null);
 
 					if (values.length > 0) {
 						const processed = processValues(values);
@@ -665,6 +623,14 @@ export const NetworkChartClient = React.memo(function NetworkChart({
 				</CardHeader>
 				<CardContent className="pr-2 pl-0 py-4 sm:pt-6 sm:pb-6 sm:pr-6 sm:pl-2">
 					<div className="relative">
+						{formattedData.length === 0 && (
+							<p
+								role="status"
+								className="px-6 pb-3 text-sm text-muted-foreground"
+							>
+								{t("monitor.noData")}
+							</p>
+						)}
 						{activeCharts.length > 0 && (
 							<button
 								className="absolute -top-2 right-1 z-10 text-xs px-2 py-1 bg-stone-100/80 dark:bg-stone-800/80 backdrop-blur-xs rounded-[5px] text-muted-foreground hover:text-foreground transition-colors"
@@ -809,67 +775,3 @@ export const NetworkChartClient = React.memo(function NetworkChart({
 		</div>
 	);
 });
-
-const transformData = (data: NezhaMonitor[]) => {
-	const monitorData: ServerMonitorChart = {};
-
-	data.forEach((item) => {
-		const monitorName = item.monitor_name;
-
-		if (!monitorData[monitorName]) {
-			monitorData[monitorName] = [];
-		}
-
-		// Calculate packet loss from delay data if not provided
-		const packetLoss = item.packet_loss || calculatePacketLoss(item.avg_delay);
-
-		for (let i = 0; i < item.created_at.length; i++) {
-			monitorData[monitorName].push({
-				created_at: item.created_at[i],
-				avg_delay: item.avg_delay[i],
-				packet_loss: packetLoss[i],
-			});
-		}
-	});
-
-	return monitorData;
-};
-
-const formatData = (rawData: NezhaMonitor[]) => {
-	const result: { [time: number]: ResultItem } = {};
-
-	const allTimes = new Set<number>();
-	rawData.forEach((item) => {
-		item.created_at.forEach((time) => {
-			allTimes.add(time);
-		});
-	});
-
-	const allTimeArray = Array.from(allTimes).sort((a, b) => a - b);
-
-	rawData.forEach((item) => {
-		const { monitor_name, created_at, avg_delay } = item;
-
-		// Calculate packet loss if not provided
-		const packetLoss = item.packet_loss || calculatePacketLoss(avg_delay);
-
-		allTimeArray.forEach((time) => {
-			if (!result[time]) {
-				result[time] = { created_at: time };
-			}
-
-			const timeIndex = created_at.indexOf(time);
-			// @ts-expect-error - avg_delay is an array
-			result[time][monitor_name] =
-				timeIndex !== -1 ? avg_delay[timeIndex] : null;
-			// Add packet loss data if available
-			if (packetLoss) {
-				// @ts-expect-error - packet_loss is calculated
-				result[time][`${monitor_name}_packet_loss`] =
-					timeIndex !== -1 ? packetLoss[timeIndex] : null;
-			}
-		});
-	});
-
-	return Object.values(result).sort((a, b) => a.created_at - b.created_at);
-};

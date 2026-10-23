@@ -139,16 +139,18 @@ describe.each([false, true])("mock metrics (guest=%s)", (guest) => {
 			expect(monitor.packet_loss).toHaveLength(monitor.created_at.length);
 			expect(
 				monitor.avg_delay.every(
-					(value) => Number.isFinite(value) && value >= 0,
+					(value) => value !== null && Number.isFinite(value) && value >= 0,
 				),
 			).toBe(true);
 			expect(
-				monitor.packet_loss?.every((value) => value >= 0 && value <= 100),
+				monitor.packet_loss?.every(
+					(value) => value !== null && value >= 0 && value <= 100,
+				),
 			).toBe(true);
 		}
 		expect(
 			body.data.some((monitor) =>
-				monitor.packet_loss?.some((value) => value > 0),
+				monitor.packet_loss?.some((value) => value !== null && value > 0),
 			),
 		).toBe(true);
 		for (const period of ["7d", "30d"]) {

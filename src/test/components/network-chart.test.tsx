@@ -1,10 +1,11 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement, ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NetworkChart, NetworkChartClient } from "@/components/NetworkChart";
 import type { ChartConfig } from "@/components/ui/chart";
+import * as monitorSeries from "@/features/network-monitor/monitor-series";
 import { createTestQueryClient } from "@/test/utils";
 import type { NezhaMonitor, ServerMonitorChart } from "@/types/nezha-api";
 
@@ -140,11 +141,17 @@ function loginResponse() {
 }
 
 function renderWithQuery(ui: ReactElement) {
-	return render(
-		<QueryClientProvider client={createTestQueryClient()}>
-			{ui}
-		</QueryClientProvider>,
-	);
+	const queryClient = createTestQueryClient();
+	return {
+		queryClient,
+		...render(ui, {
+			wrapper: ({ children }) => (
+				<QueryClientProvider client={queryClient}>
+					{children}
+				</QueryClientProvider>
+			),
+		}),
+	};
 }
 
 describe("NetworkChart", () => {
@@ -181,6 +188,10 @@ describe("NetworkChart", () => {
 		renderWithQuery(<NetworkChart server_id={7} show={true} />);
 
 		expect(await screen.findByText("monitor.noData")).toBeInTheDocument();
+		expect(
+			screen.queryByLabelText("serviceTracker.loading"),
+		).not.toBeInTheDocument();
+		expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 	});
 
 	it("renders monitors with no samples without inventing a current delay", async () => {
@@ -195,6 +206,208 @@ describe("NetworkChart", () => {
 			"data-series",
 			"[]",
 		);
+	});
+
+	it("shows pending only while an initial request is in progress", () => {
+		apiMocks.fetchMonitor.mockReturnValue(new Promise(() => undefined));
+		renderWithQuery(<NetworkChart server_id={7} show={true} />);
+		expect(screen.getByLabelText("serviceTracker.loading")).toHaveAttribute(
+			"aria-busy",
+			"true",
+		);
+		expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+		expect(apiMocks.fetchMonitor).toHaveBeenCalledTimes(1);
+	});
+
+	it("shows an initial failure without a permanent skeleton and retries successfully", async () => {
+		apiMocks.fetchMonitor.mockRejectedValueOnce(
+			new Error("network unavailable"),
+		);
+		renderWithQuery(<NetworkChart server_id={7} show={true} />);
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"monitor.loadError",
+		);
+		expect(
+			screen.queryByLabelText("serviceTracker.loading"),
+		).not.toBeInTheDocument();
+		expect(screen.queryByText("monitor.noData")).not.toBeInTheDocument();
+
+		apiMocks.fetchMonitor.mockResolvedValueOnce({
+			success: true,
+			data: monitorData,
+		});
+		await userEvent
+			.setup()
+			.click(screen.getByRole("button", { name: "monitor.retry" }));
+		expect(await screen.findByText("edge-chart")).toBeInTheDocument();
+		expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+		expect(apiMocks.fetchMonitor).toHaveBeenCalledTimes(2);
+	});
+
+	it("treats an unsuccessful response as a failure rather than empty data", async () => {
+		apiMocks.fetchMonitor.mockResolvedValue({ success: false, data: [] });
+		renderWithQuery(<NetworkChart server_id={7} show={true} />);
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"monitor.loadError",
+		);
+		expect(screen.queryByText("monitor.noData")).not.toBeInTheDocument();
+	});
+
+	it("keeps cached samples visible on a failed refresh, then removes the stale warning after retry", async () => {
+		apiMocks.fetchMonitor.mockResolvedValueOnce({
+			success: true,
+			data: monitorData,
+		});
+		const { queryClient } = renderWithQuery(
+			<NetworkChart server_id={7} show={true} />,
+		);
+		await screen.findByText("edge-chart");
+		const originalSeries = screen
+			.getByTestId("composed-chart")
+			.getAttribute("data-series");
+		apiMocks.fetchMonitor.mockRejectedValueOnce(new Error("refresh failed"));
+		await act(async () => {
+			await queryClient.refetchQueries({ queryKey: ["monitor", 7, "1d"] });
+		});
+		expect(await screen.findByText("monitor.staleData")).toBeInTheDocument();
+		expect(screen.getByText("edge-chart")).toBeInTheDocument();
+		expect(screen.getByTestId("composed-chart")).toHaveAttribute(
+			"data-series",
+			originalSeries,
+		);
+		expect(
+			screen.queryByLabelText("serviceTracker.loading"),
+		).not.toBeInTheDocument();
+		expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+
+		let completeRetry: () => void = () => undefined;
+		apiMocks.fetchMonitor.mockReturnValueOnce(
+			new Promise((resolve) => {
+				completeRetry = () =>
+					resolve({ success: true, data: [monitorData[0]] });
+			}),
+		);
+		const user = userEvent.setup();
+		await user.click(screen.getByRole("button", { name: "monitor.retry" }));
+		expect(
+			screen.getByRole("button", { name: "monitor.retry" }),
+		).toBeDisabled();
+		await user.click(screen.getByRole("button", { name: "monitor.retry" }));
+		expect(apiMocks.fetchMonitor).toHaveBeenCalledTimes(3);
+		expect(screen.getByTestId("composed-chart")).toHaveAttribute(
+			"data-series",
+			originalSeries,
+		);
+		await act(async () => {
+			completeRetry();
+		});
+		await waitFor(() =>
+			expect(screen.queryByText("monitor.staleData")).not.toBeInTheDocument(),
+		);
+		expect(screen.getByText("1 monitor.monitorCount")).toBeInTheDocument();
+	});
+
+	it("distinguishes a cached empty result with a failed refresh from an initial failure", async () => {
+		apiMocks.fetchMonitor.mockResolvedValueOnce({ success: true, data: [] });
+		const { queryClient } = renderWithQuery(
+			<NetworkChart server_id={7} show={true} />,
+		);
+		await screen.findByText("monitor.noData");
+		apiMocks.fetchMonitor.mockRejectedValueOnce(new Error("refresh failed"));
+		await act(async () => {
+			await queryClient.refetchQueries({ queryKey: ["monitor", 7, "1d"] });
+		});
+		expect(await screen.findByText("monitor.staleData")).toBeInTheDocument();
+		expect(screen.getByText("monitor.noData")).toBeInTheDocument();
+		expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+	});
+
+	it("does not repeat the merge when only fetch state changes", async () => {
+		const buildSeries = vi.spyOn(monitorSeries, "buildMonitorSeries");
+		apiMocks.fetchMonitor.mockResolvedValueOnce({
+			success: true,
+			data: monitorData,
+		});
+		const { queryClient } = renderWithQuery(
+			<NetworkChart server_id={7} show={true} />,
+		);
+		await screen.findByText("edge-chart");
+		const calls = buildSeries.mock.calls.length;
+		apiMocks.fetchMonitor.mockRejectedValueOnce(new Error("refresh failed"));
+		await act(async () => {
+			await queryClient.refetchQueries({ queryKey: ["monitor", 7, "1d"] });
+		});
+		await screen.findByText("monitor.staleData");
+		expect(buildSeries).toHaveBeenCalledTimes(calls);
+	});
+
+	it("keeps null delay and packet loss samples without crashing or fabricating zeros", async () => {
+		apiMocks.fetchMonitor.mockResolvedValue({
+			success: true,
+			data: [
+				{
+					...monitorData[0],
+					created_at: [1, 2],
+					avg_delay: [0, null],
+					packet_loss: [0, null],
+				},
+			],
+		});
+		renderWithQuery(<NetworkChart server_id={7} show={true} />);
+		await screen.findByText("Beta");
+		expect(screen.getByText("—")).toBeInTheDocument();
+		await userEvent.setup().click(screen.getByText("Beta"));
+		expect(screen.getByTestId("composed-chart")).toHaveAttribute(
+			"data-series",
+			JSON.stringify([
+				{ created_at: 1, avg_delay: 0, packet_loss: 0 },
+				{ created_at: 2, avg_delay: null, packet_loss: null },
+			]),
+		);
+	});
+
+	it("does not show one server's placeholder samples for another server", async () => {
+		apiMocks.fetchMonitor.mockResolvedValueOnce({
+			success: true,
+			data: monitorData,
+		});
+		const { rerender } = renderWithQuery(
+			<NetworkChart server_id={7} show={true} />,
+		);
+		await screen.findByText("edge-chart");
+		apiMocks.fetchMonitor.mockReturnValue(new Promise(() => undefined));
+		rerender(<NetworkChart server_id={8} show={true} />);
+		expect(screen.getByLabelText("serviceTracker.loading")).toBeInTheDocument();
+		expect(screen.queryByText("edge-chart")).not.toBeInTheDocument();
+	});
+
+	it("keeps the previous period visible while loading, then shows an error if the new period fails", async () => {
+		apiMocks.fetchLoginUser.mockResolvedValue(loginResponse());
+		apiMocks.fetchMonitor.mockResolvedValueOnce({
+			success: true,
+			data: monitorData,
+		});
+		renderWithQuery(<NetworkChart server_id={7} show={true} />);
+		await screen.findByText("edge-chart");
+		let rejectPeriod: (error: Error) => void = () => undefined;
+		apiMocks.fetchMonitor.mockReturnValueOnce(
+			new Promise((_, reject) => {
+				rejectPeriod = reject;
+			}),
+		);
+		await userEvent.setup().click(screen.getByText("monitor.period7d"));
+		expect(screen.getByText("edge-chart")).toBeInTheDocument();
+		expect(screen.getByLabelText("serviceTracker.loading")).toBeInTheDocument();
+		await act(async () => {
+			rejectPeriod(new Error("period unavailable"));
+		});
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"monitor.loadError",
+		);
+		expect(screen.queryByText("edge-chart")).not.toBeInTheDocument();
+		expect(
+			screen.queryByLabelText("serviceTracker.loading"),
+		).not.toBeInTheDocument();
 	});
 
 	it("fetches monitor data, transforms chart series, and allows logged-in period changes", async () => {

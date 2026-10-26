@@ -14,6 +14,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import Footer from "./components/Footer";
 import Header, { RefreshToast } from "./components/Header";
 import LocalErrorBoundary from "./components/LocalErrorBoundary";
+import InitializationSplash from "./components/loading/InitializationSplash";
 import { ServerDetailPageLoading } from "./components/loading/ServerDetailLoading";
 import RetryableLazy from "./components/RetryableLazy";
 import { useBackground } from "./hooks/use-background";
@@ -73,8 +74,11 @@ const MainApp: React.FC = () => {
 		status: "loading" | "ready" | "error";
 		error?: Error;
 	}>({ code: "", status: "ready" });
-	const { forceTheme, mobileBackgroundImage: customMobileBackgroundImage } =
-		useRuntimeConfig();
+	const {
+		forceTheme,
+		customLogo,
+		mobileBackgroundImage: customMobileBackgroundImage,
+	} = useRuntimeConfig();
 	const { backgroundImage: customBackgroundImage } = useBackground();
 
 	useEffect(() => {
@@ -137,7 +141,7 @@ const MainApp: React.FC = () => {
 		initialization.code !== customCode ||
 		initialization.status === "loading"
 	) {
-		return <div role="status">Loading dashboard configuration…</div>;
+		return <InitializationSplash logo={customLogo} />;
 	}
 
 	return (

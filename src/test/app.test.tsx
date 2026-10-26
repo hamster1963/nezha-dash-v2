@@ -213,7 +213,41 @@ describe("App", () => {
 		);
 		expect(screen.queryByText("server-page")).not.toBeInTheDocument();
 		await act(async () => reject(new Error("resource failed")));
+		expect(screen.queryByRole("status")).not.toBeInTheDocument();
 		expect(screen.getByRole("alert")).toHaveTextContent("resource failed");
+		expect(screen.getByText("server-page")).toBeInTheDocument();
+	});
+
+	it("shows the logo until initialization completes, then reveals the shell without a delay", async () => {
+		let finish!: () => void;
+		appMocks.fetchSetting.mockResolvedValue(
+			settingResponse("<script src='/slow.js'></script>"),
+		);
+		appMocks.injectContext.mockImplementation((code: string) =>
+			code
+				? new Promise<void>((resolve) => {
+						finish = resolve;
+					})
+				: Promise.resolve(),
+		);
+		renderApp();
+		await waitFor(() => expect(finish).toBeDefined());
+		const status = screen.getByRole("status");
+		expect(status.querySelector("img")).toHaveAttribute(
+			"src",
+			"/apple-touch-icon.png",
+		);
+		expect(screen.getByText("Loading dashboard configuration…")).toHaveClass(
+			"sr-only",
+		);
+		expect(screen.queryByText("header")).not.toBeInTheDocument();
+		act(() => {
+			window.CustomLogo = "/brand.svg";
+		});
+		expect(status.querySelector("img")).toHaveAttribute("src", "/brand.svg");
+		await act(async () => finish());
+		expect(screen.queryByRole("status")).not.toBeInTheDocument();
+		expect(screen.getByText("header")).toBeInTheDocument();
 		expect(screen.getByText("server-page")).toBeInTheDocument();
 	});
 

@@ -47,7 +47,11 @@ export default function Servers({
 	const { lastData } = useWebSocketContext();
 	const { status } = useStatus();
 	const nezhaWsData = lastData;
-	const preferences = useServerPreferences(hasServices, nezhaWsData);
+	const preferences = useServerPreferences(
+		hasServices,
+		nezhaWsData,
+		!configurationLoading,
+	);
 	const { showServices, showMap, inline, currentGroup } = preferences;
 
 	const { backgroundImage: customBackgroundImage } = useRuntimeConfig();

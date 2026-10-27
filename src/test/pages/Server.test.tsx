@@ -468,6 +468,62 @@ describe("Servers page", () => {
 		});
 	});
 
+	it("waits for configuration and the rendered list before restoring scroll exactly once", () => {
+		const scrollTo = vi.fn(() => {
+			expect(screen.getByText("scroll-target-server")).toBeInTheDocument();
+			expect(screen.queryByRole("status")).not.toBeInTheDocument();
+		});
+		vi.stubGlobal("scrollTo", scrollTo);
+		vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+			callback(0);
+			return 0;
+		});
+		sessionStorage.setItem("fromMainPage", "true");
+		sessionStorage.setItem("scrollPosition", "1200");
+		const data = websocketPayload([
+			createServer({ id: 1, name: "scroll-target-server" }),
+		]);
+		function Page({
+			loading,
+			payload = data,
+		}: {
+			loading: boolean;
+			payload?: typeof data;
+		}) {
+			return (
+				<SortProvider>
+					<StatusProvider>
+						<WebSocketContext.Provider
+							value={{
+								connected: true,
+								lastData: payload,
+								messageHistory: [],
+								reconnect: vi.fn(),
+								needReconnect: false,
+								setNeedReconnect: vi.fn(),
+							}}
+						>
+							<Servers configurationLoading={loading} />
+						</WebSocketContext.Provider>
+					</StatusProvider>
+				</SortProvider>
+			);
+		}
+		const { rerender } = renderWithProviders(<Page loading />);
+		expect(screen.getByRole("status")).toBeInTheDocument();
+		expect(scrollTo).not.toHaveBeenCalled();
+		rerender(<Page loading={false} />);
+		expect(scrollTo).toHaveBeenCalledExactlyOnceWith({
+			top: 1200,
+			left: 0,
+			behavior: "auto",
+		});
+		rerender(
+			<Page loading={false} payload={{ ...data, now: data.now + 1000 }} />,
+		);
+		expect(scrollTo).toHaveBeenCalledTimes(1);
+	});
+
 	it("does not restore stale scroll positions without a main page origin", () => {
 		const scrollTo = vi.fn();
 		vi.stubGlobal("scrollTo", scrollTo);

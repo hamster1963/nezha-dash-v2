@@ -6,6 +6,7 @@ import type { NezhaWebsocketResponse } from "@/types/nezha-api";
 export function useServerPreferences(
 	hasServices: boolean,
 	data: NezhaWebsocketResponse | null | undefined,
+	canRestoreScroll = true,
 ) {
 	const { forceShowServices, forceShowMap, forceCardInline } =
 		useRuntimeConfig();
@@ -96,10 +97,10 @@ export function useServerPreferences(
 	}, []);
 
 	useEffect(() => {
-		if (data) {
+		if (data && canRestoreScroll) {
 			restoreScrollPosition();
 		}
-	}, [data, restoreScrollPosition]);
+	}, [data, canRestoreScroll, restoreScrollPosition]);
 
 	const toggleMap = () => {
 		const value = showMap === "0" ? "1" : "0";

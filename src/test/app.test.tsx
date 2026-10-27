@@ -103,6 +103,9 @@ describe("App", () => {
 	it("renders an already preloaded detail route synchronously without a fallback flash", async () => {
 		renderApp("/");
 		await screen.findByText("server-page");
+		await waitFor(() =>
+			expect(screen.getByText("header")).toHaveAttribute("aria-busy", "false"),
+		);
 		await loadServerDetail();
 		fireEvent.click(screen.getByText("open-detail"));
 		expect(screen.getByText("server-detail-page")).toBeInTheDocument();

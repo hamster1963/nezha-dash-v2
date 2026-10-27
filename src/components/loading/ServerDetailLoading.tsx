@@ -1,13 +1,16 @@
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import ChartSkeleton from "@/components/loading/ChartSkeleton";
-import Bar from "@/components/loading/SkeletonBar";
-import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useRuntimeConfig } from "@/lib/runtime-config";
 import { cn } from "@/lib/utils";
 
-import { BackIcon } from "../Icon";
+// Shared critical styles live in index.html so these placeholders also render
+// before the application bundle arrives on a direct /server/:id visit.
+const ROWS = [
+	[48, 76, 55, 50, 58, 58, 50],
+	[120, 190],
+	[145, 95, 95],
+	[145, 145],
+];
 
 export function ServerDetailChartLoading() {
 	const { t } = useTranslation();
@@ -17,25 +20,39 @@ export function ServerDetailChartLoading() {
 			role="status"
 			aria-label={t("serviceTracker.loading")}
 			aria-busy="true"
+			className={cn(
+				"detail-skeleton detail-chart-loading",
+				backgroundImage && "detail-transparent",
+			)}
 		>
 			<div aria-hidden="true">
-				<Bar className="mb-3 -mt-3 h-8 w-64 max-w-full rounded-full sm:-mt-5" />
-				<section className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-					{Array.from({ length: 6 }, (_, index) => (
-						<Card
-							key={index}
-							className={cn("h-[182px]", { "bg-card/70": backgroundImage })}
-						>
-							<CardContent className="px-6 py-3">
-								<div className="mb-1 flex h-6 items-center justify-between gap-4">
-									<Bar className="h-3 w-16" />
-									<Bar className="h-3 w-20" />
+				<div className="detail-period">
+					<span className="detail-bar" />
+				</div>
+				<div className="detail-chart-grid">
+					{[0, 1, 2, 3, 4, 5].map((index) => (
+						<div key={index} className="detail-chart-card">
+							<div className="detail-chart-title">
+								<span className="detail-bar" />
+								<span className="detail-bar" />
+							</div>
+							<div className="detail-chart-plot">
+								{[0, 1, 2].map((tick) => (
+									<div key={tick} className="detail-chart-tick">
+										<span className="detail-bar" />
+										<i />
+									</div>
+								))}
+								<div className="detail-chart-axis">
+									{[0, 1, 2].map((tick) => (
+										<span key={tick} className="detail-bar" />
+									))}
 								</div>
-								<ChartSkeleton height={130} />
-							</CardContent>
-						</Card>
+								<span className="detail-chart-spinner" />
+							</div>
+						</div>
 					))}
-				</section>
+				</div>
 			</div>
 		</div>
 	);
@@ -43,31 +60,59 @@ export function ServerDetailChartLoading() {
 
 export function ServerDetailLoading() {
 	const navigate = useNavigate();
-
+	const { t } = useTranslation();
+	const { backgroundImage } = useRuntimeConfig();
 	return (
-		<div className="mx-auto w-full max-w-5xl px-0">
-			<div
-				onClick={() => {
-					navigate("/");
-				}}
-				className="flex flex-none cursor-pointer font-semibold leading-none items-center break-all tracking-tight gap-0.5 text-xl"
+		<div
+			className={cn(
+				"detail-skeleton detail-summary",
+				backgroundImage && "detail-summary-background",
+			)}
+			aria-busy="true"
+		>
+			<button
+				type="button"
+				aria-label={t("Home")}
+				onClick={() => navigate("/")}
+				className="detail-name"
 			>
-				<BackIcon />
-				<Skeleton className="h-[20px] w-24 rounded-[5px] bg-muted-foreground/10 animate-none"></Skeleton>
+				<svg
+					aria-hidden="true"
+					width="20"
+					height="20"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					strokeWidth="2"
+				>
+					<path d="m14 6-6 6 6 6" />
+				</svg>
+				<span aria-hidden="true" className="detail-bar" />
+			</button>
+			<div aria-hidden="true" className="detail-metrics">
+				{ROWS.map((widths, row) => (
+					<div key={row} className="detail-metric-row">
+						{widths.map((width, index) => (
+							<div key={index} className="detail-metric" style={{ width }}>
+								<span className="detail-bar" />
+								<span className="detail-bar" />
+							</div>
+						))}
+					</div>
+				))}
 			</div>
-			<Skeleton className="flex flex-wrap gap-2 h-[81px] w-1/2 mt-3 rounded-[5px] bg-muted-foreground/10 animate-none"></Skeleton>
 		</div>
 	);
 }
 
 export function ServerDetailPageLoading() {
 	return (
-		<div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-0 server-info">
+		<div className="detail-skeleton detail-page server-info">
 			<ServerDetailLoading />
-			<div aria-hidden="true" className="my-2 flex h-10 items-center gap-3">
-				<div className="h-px flex-1 bg-border" />
-				<Bar className="h-10 w-48 rounded-full" />
-				<div className="h-px flex-1 bg-border" />
+			<div aria-hidden="true" className="detail-tabs">
+				<i />
+				<span className="detail-bar" />
+				<i />
 			</div>
 			<ServerDetailChartLoading />
 		</div>

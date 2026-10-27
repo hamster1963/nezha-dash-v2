@@ -81,7 +81,7 @@ describe("ServerDetailOverview", () => {
 			</MemoryRouter>,
 		);
 
-		expect(screen.getAllByAltText("BackIcon").length).toBeGreaterThan(0);
+		expect(screen.getByRole("button", { name: "Home" })).toBeInTheDocument();
 
 		seedWebSocketData();
 		rerender(
@@ -90,7 +90,7 @@ describe("ServerDetailOverview", () => {
 			</MemoryRouter>,
 		);
 
-		expect(screen.getAllByAltText("BackIcon").length).toBeGreaterThan(0);
+		expect(screen.getByRole("button", { name: "Home" })).toBeInTheDocument();
 	});
 
 	it("renders server identity, hardware, traffic, and temperature details", async () => {

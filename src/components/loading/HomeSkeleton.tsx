@@ -6,7 +6,11 @@ const ITEMS = [0, 1, 2, 3, 4, 5];
 
 export default function HomeSkeleton() {
 	return (
-		<div role="status" aria-busy="true" className="mx-auto w-full max-w-5xl">
+		<div
+			role="status"
+			aria-busy="true"
+			className="mx-auto flex w-full max-w-5xl flex-1 flex-col"
+		>
 			<div aria-hidden="true">
 				<ServerOverview
 					loading
@@ -32,7 +36,7 @@ export default function HomeSkeleton() {
 					<SkeletonBar className="h-8 w-28 shrink-0 rounded-full" />
 				</div>
 			</div>
-			<div className="flex min-h-96 items-center justify-center gap-2">
+			<div className="flex min-h-16 flex-1 items-center justify-center gap-2">
 				<span aria-hidden="true">
 					<Loader visible />
 				</span>

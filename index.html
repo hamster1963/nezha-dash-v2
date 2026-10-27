@@ -48,6 +48,7 @@
         applyResolvedTheme(resolveTheme(theme))
 
         root.toggleAttribute("data-initial-home", location.pathname === "/")
+        root.toggleAttribute("data-initial-detail", /^\/server\/[^/]+\/?$/.test(location.pathname))
 
       })()
     </script>
@@ -65,10 +66,13 @@
     <!-- Critical first-paint styles: no stylesheet or React download required. -->
     <style>
       body { margin: 0; }
-      .boot-shell { --boot-bar: #e7e5e4; --boot-card: #fff; --boot-border: oklch(92.3% 0.003 48.717); --boot-shadow: color-mix(in oklab, oklch(92.3% 0.003 48.717) 50%, transparent); box-sizing: border-box; min-height: 100vh; padding: 16px; color: #57534e; font: 14px/1.5 system-ui, sans-serif; }
+      .boot-shell { --boot-bar: #e7e5e4; --boot-card: #fff; --boot-border: oklch(92.3% 0.003 48.717); --boot-shadow: color-mix(in oklab, oklch(92.3% 0.003 48.717) 50%, transparent); box-sizing: border-box; min-height: 100vh; display: flex; flex-direction: column; padding: 16px; color: #57534e; font: 14px/1.5 system-ui, sans-serif; }
       .dark .boot-shell { --boot-bar: #44403c; --boot-card: hsl(20 14.3% 4.1%); --boot-border: oklch(26.8% 0.007 34.298); color: #a8a29e; }
       .boot-shell * { box-sizing: border-box; }
-      .boot-inner { max-width: 1024px; margin: auto; }
+      .boot-inner { width: 100%; max-width: 1024px; margin: 0 auto; display: flex; flex: 1; flex-direction: column; }
+      .boot-inner > [aria-hidden] { display: flex; flex: 1; flex-direction: column; }
+      .app-shell { min-height: 100vh; }
+      @supports (min-height: 100dvh) { .app-shell, .boot-shell { min-height: 100dvh; } }
       .boot-top, .boot-brand, .boot-actions, .boot-filters { display: flex; align-items: center; }
       .boot-top { height: 36px; justify-content: space-between; gap: 16px; }
       .boot-brand { gap: 0; }
@@ -86,7 +90,9 @@
       .boot-intro { height: 45px; margin-top: 40px; display: flex; flex-direction: column; justify-content: center; gap: 8px; }
       .boot-intro .boot-bar:first-child { height: 20px; width: 112px; }
       .boot-intro .boot-bar:last-child { height: 16px; width: 192px; }
-      .boot-home { margin-top: 16px; }
+      .boot-home { margin-top: 16px; display: flex; flex: 1; flex-direction: column; }
+      .boot-home::after { content: ""; flex-shrink: 0; height: 90.5px; margin-top: 16px; }
+      @media (min-width: 640px) { .boot-home::after { height: 63px; } }
       html:not([data-initial-home]) .boot-home { display: none; }
       .boot-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
       .boot-stat { height: 76px; padding: 12px 24px; border-radius: 16px; background: var(--boot-card); box-shadow: 0 0 0 1px var(--boot-border), 0 4px 6px -1px var(--boot-shadow), 0 2px 4px -2px var(--boot-shadow); display: flex; flex-direction: column; justify-content: center; gap: 4px; }
@@ -110,7 +116,7 @@
       .boot-filter-items .boot-filter-region { display: none; width: 96px; flex-shrink: 1; }
       .boot-filters > .boot-bar { width: 112px; }
       @media (min-width: 640px) { .boot-filter-items .boot-filter-region { display: block; } }
-      .boot-message { min-height: 384px; display: flex; justify-content: center; align-items: center; gap: 8px; font-weight: 600; }
+      .boot-message { min-height: 64px; flex: 1; display: flex; justify-content: center; align-items: center; gap: 8px; font-weight: 600; }
       @media (min-width: 640px) { .boot-mobile { display: none; } .boot-stat-total { height: 18px; } .boot-stat-speeds { flex-direction: row; } .boot-stat:nth-child(n+3) { height: 86.5px; } }
       @media (min-width: 768px) { .boot-shell { padding: 32px 40px 40px; } .boot-description, .boot-separator { display: block; } .boot-intro { margin-top: 64px; } .boot-stat-label { height: 24px; } .boot-stat { height: 80px; } .boot-stat:nth-child(n+3) { height: 90.5px; } }
       @media (min-width: 1024px) { .boot-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); } .boot-stat { height: 90.5px; } }
@@ -126,6 +132,47 @@
       .boot-spinner-bar:nth-child(7) { transform: rotate(270deg) translate(120%); animation-delay: -0.2s; }
       .boot-spinner-bar:nth-child(8) { transform: rotate(315deg) translate(120%); animation-delay: -0.1s; }
       @keyframes boot-spin { from { opacity: 1; } to { opacity: .15; } }
+
+      /* Shared by the HTML boot placeholder and React detail fallbacks. */
+      .detail-skeleton { --detail-bar: color-mix(in oklab, oklch(92.3% 0.003 48.717) 70%, transparent); --detail-card: #fff; --detail-ring: oklch(92.3% 0.003 48.717); --detail-shadow: color-mix(in oklab, oklch(92.3% 0.003 48.717) 50%, transparent); color: #57534e; }
+      .dark .detail-skeleton { --detail-bar: color-mix(in oklab, oklch(37.4% 0.01 67.558) 60%, transparent); --detail-card: hsl(20 14.3% 4.1%); --detail-ring: oklch(26.8% 0.007 34.298); --detail-shadow: transparent; color: #a8a29e; }
+      .detail-skeleton, .detail-skeleton * { box-sizing: border-box; }
+      .detail-bar { display: block; border-radius: 5px; background: var(--detail-bar); max-width: 100%; }
+      .detail-page { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 1024px; margin: 0 auto; }
+      .boot-detail { margin-top: 16px; }
+      html:not([data-initial-detail]) .boot-detail { display: none; }
+      .detail-name { display: flex; align-items: center; gap: 4px; height: 24px; padding: 0; border: 0; background: none; color: inherit; cursor: pointer; }
+      .detail-name .detail-bar { width: 144px; height: 20px; }
+      .detail-metrics { margin-top: 12px; }
+      .detail-metric-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+      .detail-metric-row:first-child { margin-top: 0; }
+      .detail-metric { padding: 4px 6px; display: flex; flex-direction: column; gap: 6px; max-width: 100%; }
+      .detail-metric .detail-bar:first-child { width: 32px; height: 12px; }
+      .detail-metric .detail-bar:last-child { width: 100%; height: 16px; }
+      .detail-tabs { display: flex; align-items: center; margin: 8px 0; height: 41.5px; gap: 4px; }
+      .detail-tabs i { flex: 1; height: 1px; background: var(--detail-ring); }
+      .detail-tabs .detail-bar { width: 192px; height: 41.5px; border-radius: 999px; }
+      .detail-period { height: 32px; margin-top: -12px; margin-bottom: 12px; }
+      .detail-period .detail-bar { width: 256px; height: 32px; border-radius: 999px; }
+      .detail-chart-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+      .detail-chart-card { height: 182px; padding: 12px 24px; border-radius: 16px; background: var(--detail-card); box-shadow: 0 0 0 1px var(--detail-ring), 0 4px 6px -1px var(--detail-shadow), 0 2px 4px -2px var(--detail-shadow); }
+      .detail-chart-title { display: flex; height: 24px; margin-bottom: 4px; align-items: center; justify-content: space-between; gap: 16px; }
+      .detail-chart-title .detail-bar { height: 12px; width: 64px; }
+      .detail-chart-title .detail-bar:last-child { width: 80px; }
+      .detail-chart-plot { position: relative; height: 130px; padding: 12px 8px 4px; display: flex; flex-direction: column; justify-content: space-between; }
+      .detail-chart-tick { display: flex; align-items: center; gap: 12px; }
+      .detail-chart-tick .detail-bar { width: 20px; height: 8px; }
+      .detail-chart-tick i { flex: 1; height: 1px; background: var(--detail-ring); opacity: .5; }
+      .detail-chart-axis { display: flex; padding-left: 32px; justify-content: space-between; }
+      .detail-chart-axis .detail-bar { width: 28px; height: 8px; }
+      .detail-chart-spinner { position: absolute; top: calc(50% - 8px); left: calc(50% - 8px); width: 16px; height: 16px; border: 2px solid var(--detail-bar); border-top-color: currentColor; border-radius: 50%; animation: detail-spin 1s linear infinite; }
+      .detail-transparent .detail-chart-card, .detail-summary-background { background: color-mix(in srgb, var(--detail-card) 70%, transparent); }
+      .detail-summary-background { padding: 16px; border-radius: 10px; }
+      @keyframes detail-spin { to { transform: rotate(360deg); } }
+      @media (prefers-reduced-motion: reduce) { .detail-chart-spinner { animation: none; } }
+      @media (min-width: 640px) { .detail-period { margin-top: -20px; } }
+      @media (min-width: 768px) { .detail-chart-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+      @media (min-width: 1024px) { .detail-chart-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
     </style>
   </head>
   <body>
@@ -145,6 +192,7 @@
               <div class="boot-message"><span class="boot-spinner" aria-hidden="true"><span class="boot-spinner-inner" style="display:block"><span class="boot-spinner-bar"></span><span class="boot-spinner-bar"></span><span class="boot-spinner-bar"></span><span class="boot-spinner-bar"></span><span class="boot-spinner-bar"></span><span class="boot-spinner-bar"></span><span class="boot-spinner-bar"></span><span class="boot-spinner-bar"></span></span></span><span>Loading…</span></div>
             </div>
           </div>
+          <div class="boot-detail detail-skeleton detail-page"><div class="detail-summary"><div class="detail-name"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m14 6-6 6 6 6"></path></svg><span class="detail-bar"></span></div><div class="detail-metrics"><div class="detail-metric-row"><div class="detail-metric" style="width:48px"><span class="detail-bar"></span><span class="detail-bar"></span></div><div class="detail-metric" style="width:76px"><span class="detail-bar"></span><span class="detail-bar"></span></div><div class="detail-metric" style="width:55px"><span class="detail-bar"></span><span class="detail-bar"></span></div><div class="detail-metric" style="width:50px"><span class="detail-bar"></span><span class="detail-bar"></span></div><div class="detail-metric" style="width:58px"><span class="detail-bar"></span><span class="detail-bar"></span></div><div class="detail-metric" style="width:58px"><span class="detail-bar"></span><span class="detail-bar"></span></div><div class="detail-metric" style="width:50px"><span class="detail-bar"></span><span class="detail-bar"></span></div></div><div class="detail-metric-row"><div class="detail-metric" style="width:120px"><span class="detail-bar"></span><span class="detail-bar"></span></div><div class="detail-metric" style="width:190px"><span class="detail-bar"></span><span class="detail-bar"></span></div></div><div class="detail-metric-row"><div class="detail-metric" style="width:145px"><span class="detail-bar"></span><span class="detail-bar"></span></div><div class="detail-metric" style="width:95px"><span class="detail-bar"></span><span class="detail-bar"></span></div><div class="detail-metric" style="width:95px"><span class="detail-bar"></span><span class="detail-bar"></span></div></div><div class="detail-metric-row"><div class="detail-metric" style="width:145px"><span class="detail-bar"></span><span class="detail-bar"></span></div><div class="detail-metric" style="width:145px"><span class="detail-bar"></span><span class="detail-bar"></span></div></div></div></div><div class="detail-tabs"><i></i><span class="detail-bar"></span><i></i></div><div class="detail-chart-loading"><div class="detail-period"><span class="detail-bar"></span></div><div class="detail-chart-grid"><div class="detail-chart-card"><div class="detail-chart-title"><span class="detail-bar"></span><span class="detail-bar"></span></div><div class="detail-chart-plot"><div class="detail-chart-tick"><span class="detail-bar"></span><i></i></div><div class="detail-chart-tick"><span class="detail-bar"></span><i></i></div><div class="detail-chart-tick"><span class="detail-bar"></span><i></i></div><div class="detail-chart-axis"><span class="detail-bar"></span><span class="detail-bar"></span><span class="detail-bar"></span></div><span class="detail-chart-spinner"></span></div></div><div class="detail-chart-card"><div class="detail-chart-title"><span class="detail-bar"></span><span class="detail-bar"></span></div><div class="detail-chart-plot"><div class="detail-chart-tick"><span class="detail-bar"></span><i></i></div><div class="detail-chart-tick"><span class="detail-bar"></span><i></i></div><div class="detail-chart-tick"><span class="detail-bar"></span><i></i></div><div class="detail-chart-axis"><span class="detail-bar"></span><span class="detail-bar"></span><span class="detail-bar"></span></div><span class="detail-chart-spinner"></span></div></div><div class="detail-chart-card"><div class="detail-chart-title"><span class="detail-bar"></span><span class="detail-bar"></span></div><div class="detail-chart-plot"><div class="detail-chart-tick"><span class="detail-bar"></span><i></i></div><div class="detail-chart-tick"><span class="detail-bar"></span><i></i></div><div class="detail-chart-tick"><span class="detail-bar"></span><i></i></div><div class="detail-chart-axis"><span class="detail-bar"></span><span class="detail-bar"></span><span class="detail-bar"></span></div><span class="detail-chart-spinner"></span></div></div><div class="detail-chart-card"><div class="detail-chart-title"><span class="detail-bar"></span><span class="detail-bar"></span></div><div class="detail-chart-plot"><div class="detail-chart-tick"><span class="detail-bar"></span><i></i></div><div class="detail-chart-tick"><span class="detail-bar"></span><i></i></div><div class="detail-chart-tick"><span class="detail-bar"></span><i></i></div><div class="detail-chart-axis"><span class="detail-bar"></span><span class="detail-bar"></span><span class="detail-bar"></span></div><span class="detail-chart-spinner"></span></div></div><div class="detail-chart-card"><div class="detail-chart-title"><span class="detail-bar"></span><span class="detail-bar"></span></div><div class="detail-chart-plot"><div class="detail-chart-tick"><span class="detail-bar"></span><i></i></div><div class="detail-chart-tick"><span class="detail-bar"></span><i></i></div><div class="detail-chart-tick"><span class="detail-bar"></span><i></i></div><div class="detail-chart-axis"><span class="detail-bar"></span><span class="detail-bar"></span><span class="detail-bar"></span></div><span class="detail-chart-spinner"></span></div></div><div class="detail-chart-card"><div class="detail-chart-title"><span class="detail-bar"></span><span class="detail-bar"></span></div><div class="detail-chart-plot"><div class="detail-chart-tick"><span class="detail-bar"></span><i></i></div><div class="detail-chart-tick"><span class="detail-bar"></span><i></i></div><div class="detail-chart-tick"><span class="detail-bar"></span><i></i></div><div class="detail-chart-axis"><span class="detail-bar"></span><span class="detail-bar"></span><span class="detail-bar"></span></div><span class="detail-chart-spinner"></span></div></div></div></div></div>
           <noscript>Enable JavaScript to view this dashboard.</noscript>
         </div>
       </div>

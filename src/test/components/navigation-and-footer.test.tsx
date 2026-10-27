@@ -137,7 +137,7 @@ describe("server detail loading states", () => {
 	it("renders chart skeleton cards", () => {
 		const { container } = render(<ServerDetailChartLoading />);
 
-		expect(container.querySelectorAll(".h-\\[182px\\]")).toHaveLength(6);
+		expect(container.querySelectorAll(".detail-chart-card")).toHaveLength(6);
 	});
 
 	it("navigates home from the detail loading back affordance", async () => {
@@ -153,7 +153,7 @@ describe("server detail loading states", () => {
 			</QueryClientProvider>,
 		);
 
-		await user.click(screen.getAllByAltText("BackIcon")[0]);
+		await user.click(screen.getByRole("button", { name: "Home" }));
 
 		expect(screen.getByText("/")).toBeInTheDocument();
 	});

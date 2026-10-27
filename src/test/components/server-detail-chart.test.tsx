@@ -216,7 +216,7 @@ describe("ServerDetailChart", () => {
 
 		const { container } = renderWithQuery(<ServerDetailChart server_id="7" />);
 
-		expect(container.querySelectorAll(".h-\\[182px\\]")).toHaveLength(6);
+		expect(container.querySelectorAll(".detail-chart-card")).toHaveLength(6);
 	});
 
 	it("renders realtime resource, network, connection, and GPU charts", async () => {

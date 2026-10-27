@@ -32,8 +32,13 @@ import ErrorPage from "./pages/ErrorPage";
 import Server from "./pages/Server";
 
 const loadNotFound = () => import("./pages/NotFound");
-function ServerDetail() {
+function ServerDetail({
+	configurationLoading,
+}: {
+	configurationLoading: boolean;
+}) {
 	const { t } = useTranslation();
+	if (configurationLoading) return <ServerDetailPageLoading />;
 	// 已完成预加载时直接渲染，避免 lazy 首次读取已兑现 Promise 仍短暂挂起。
 	return (
 		<RetryableLazy
@@ -171,11 +176,11 @@ const MainApp: React.FC = () => {
 				/>
 			)}
 			<div
-				className={cn("flex min-h-screen w-full flex-col", {
+				className={cn("app-shell flex w-full flex-col", {
 					"bg-background": !customBackgroundImage,
 				})}
 			>
-				<main className="flex z-20 min-h-[calc(100vh-calc(var(--spacing)*16))] flex-1 flex-col gap-4 p-4 md:p-10 md:pt-8">
+				<main className="flex z-20 min-h-0 flex-1 flex-col gap-4 p-4 md:p-10 md:pt-8">
 					<RefreshToast />
 					<Header configurationLoading={configurationLoading} />
 					<DashCommand />
@@ -190,7 +195,12 @@ const MainApp: React.FC = () => {
 									/>
 								}
 							/>
-							<Route path="/server/:id" element={<ServerDetail />} />
+							<Route
+								path="/server/:id"
+								element={
+									<ServerDetail configurationLoading={configurationLoading} />
+								}
+							/>
 							<Route path="/error" element={<ErrorPage />} />
 							<Route
 								path="*"

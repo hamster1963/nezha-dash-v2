@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <meta charset="UTF-8" />
+    <meta name="theme-color" content="hsl(0 0% 98%)" />
     <script>
       ;(() => {
         const storageKey = "vite-ui-theme"
@@ -45,36 +47,108 @@
 
         applyResolvedTheme(resolveTheme(theme))
 
-        // Add loaded class after React has mounted
-        window.addEventListener("load", () => {
-          const root = document.getElementById("root")
-          if (root) {
-            // 使用 RAF 确保在下一帧渲染
-            requestAnimationFrame(() => {
-              requestAnimationFrame(() => {
-                root.classList.add("loaded")
-              })
-            })
-          }
-        })
+        root.toggleAttribute("data-initial-home", location.pathname === "/")
+
       })()
     </script>
-    <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>哪吒监控 Nezha Monitoring</title>
 
     <!-- PWA -->
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="hsl(0 0% 98%)" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Nezha Monitoring" />
     <link rel="apple-touch-icon" href="/android-chrome-192x192.png" />
 
+    <!-- Critical first-paint styles: no stylesheet or React download required. -->
+    <style>
+      body { margin: 0; }
+      .boot-shell { --boot-bar: #e7e5e4; --boot-card: #fff; --boot-border: oklch(92.3% 0.003 48.717); --boot-shadow: color-mix(in oklab, oklch(92.3% 0.003 48.717) 50%, transparent); box-sizing: border-box; min-height: 100vh; padding: 16px; color: #57534e; font: 14px/1.5 system-ui, sans-serif; }
+      .dark .boot-shell { --boot-bar: #44403c; --boot-card: hsl(20 14.3% 4.1%); --boot-border: oklch(26.8% 0.007 34.298); color: #a8a29e; }
+      .boot-shell * { box-sizing: border-box; }
+      .boot-inner { max-width: 1024px; margin: auto; }
+      .boot-top, .boot-brand, .boot-actions, .boot-filters { display: flex; align-items: center; }
+      .boot-top { height: 36px; justify-content: space-between; gap: 16px; }
+      .boot-brand { gap: 0; }
+      .boot-separator { display: none; flex-shrink: 0; width: 1px; height: 16px; margin: 0 8px; background: hsl(20 5.9% 90%); }
+      .dark .boot-separator { background: hsl(12 6.5% 15.1%); }
+      .boot-actions { gap: 8px; }
+      .boot-bar { display: block; background: var(--boot-bar); border-radius: 5px; opacity: .65; }
+      .boot-icon { width: 24px; height: 24px; border-radius: 50%; }
+      .boot-brand .boot-icon { margin-right: 4px; }
+      .boot-title { width: 80px; height: 24px; }
+      .boot-description { display: none; width: 112px; height: 16px; }
+      .boot-action { width: 34px; height: 34px; border-radius: 50%; }
+      .boot-badge { width: 100px; height: 34px; border-radius: 999px; }
+      .boot-mobile { height: 20px; margin-top: 4px; }
+      .boot-intro { height: 45px; margin-top: 40px; display: flex; flex-direction: column; justify-content: center; gap: 8px; }
+      .boot-intro .boot-bar:first-child { height: 20px; width: 112px; }
+      .boot-intro .boot-bar:last-child { height: 16px; width: 192px; }
+      .boot-home { margin-top: 16px; }
+      html:not([data-initial-home]) .boot-home { display: none; }
+      .boot-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+      .boot-stat { height: 76px; padding: 12px 24px; border-radius: 16px; background: var(--boot-card); box-shadow: 0 0 0 1px var(--boot-border), 0 4px 6px -1px var(--boot-shadow), 0 2px 4px -2px var(--boot-shadow); display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+      .dark .boot-stat { box-shadow: 0 0 0 1px var(--boot-border); }
+      .boot-stat:nth-child(n+3) { height: 104px; }
+      /* Match OverviewPlaceholder row boxes, including the responsive network rows. */
+      .boot-stat-label, .boot-stat-value, .boot-stat-total, .boot-stat-speed { display: flex; align-items: center; flex-shrink: 0; }
+      .boot-stat-label { height: 20px; }
+      .boot-stat-label .boot-bar { width: 80px; max-width: 100%; height: 16px; }
+      .boot-stat-value { height: 28px; }
+      .boot-stat-value .boot-bar { width: 48px; height: 20px; }
+      .boot-stat-total { height: 15px; }
+      .boot-stat-total .boot-bar { width: 112px; max-width: 100%; height: 12px; }
+      .boot-stat-speeds { display: flex; flex-direction: column; gap: 4px; }
+      .boot-stat-speed { height: 16.5px; }
+      .boot-stat-speed .boot-bar { width: 56px; height: 12px; }
+      .boot-filters { margin-top: 24px; height: 36px; gap: 16px; justify-content: space-between; }
+      .boot-filter-items { display: flex; min-width: 0; align-items: center; gap: 8px; overflow: hidden; }
+      .boot-filters .boot-bar { width: 32px; height: 32px; border-radius: 999px; flex-shrink: 0; }
+      .boot-filter-items .boot-filter-group { width: 64px; }
+      .boot-filter-items .boot-filter-region { display: none; width: 96px; flex-shrink: 1; }
+      .boot-filters > .boot-bar { width: 112px; }
+      @media (min-width: 640px) { .boot-filter-items .boot-filter-region { display: block; } }
+      .boot-message { min-height: 384px; display: flex; justify-content: center; align-items: center; gap: 8px; font-weight: 600; }
+      @media (min-width: 640px) { .boot-mobile { display: none; } .boot-stat-total { height: 18px; } .boot-stat-speeds { flex-direction: row; } .boot-stat:nth-child(n+3) { height: 86.5px; } }
+      @media (min-width: 768px) { .boot-shell { padding: 32px 40px 40px; } .boot-description, .boot-separator { display: block; } .boot-intro { margin-top: 64px; } .boot-stat-label { height: 24px; } .boot-stat { height: 80px; } .boot-stat:nth-child(n+3) { height: 90.5px; } }
+      @media (min-width: 1024px) { .boot-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); } .boot-stat { height: 90.5px; } }
+      .boot-spinner { --size: 12px; width: var(--size); height: var(--size); flex-shrink: 0; }
+      .boot-spinner-inner { position: relative; top: 50%; left: 50%; width: var(--size); height: var(--size); }
+      .boot-spinner-bar { position: absolute; background: hsl(0 0% 43.5%); border-radius: 6px; height: 13%; width: 30%; left: -10%; top: -3.9%; animation: boot-spin .8s linear infinite; }
+      .boot-spinner-bar:nth-child(1) { transform: rotate(0deg) translate(120%); animation-delay: -0.8s; }
+      .boot-spinner-bar:nth-child(2) { transform: rotate(45deg) translate(120%); animation-delay: -0.7s; }
+      .boot-spinner-bar:nth-child(3) { transform: rotate(90deg) translate(120%); animation-delay: -0.6s; }
+      .boot-spinner-bar:nth-child(4) { transform: rotate(135deg) translate(120%); animation-delay: -0.5s; }
+      .boot-spinner-bar:nth-child(5) { transform: rotate(180deg) translate(120%); animation-delay: -0.4s; }
+      .boot-spinner-bar:nth-child(6) { transform: rotate(225deg) translate(120%); animation-delay: -0.3s; }
+      .boot-spinner-bar:nth-child(7) { transform: rotate(270deg) translate(120%); animation-delay: -0.2s; }
+      .boot-spinner-bar:nth-child(8) { transform: rotate(315deg) translate(120%); animation-delay: -0.1s; }
+      @keyframes boot-spin { from { opacity: 1; } to { opacity: .15; } }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="boot-shell" role="status" aria-label="Loading dashboard" aria-busy="true">
+        <div class="boot-inner">
+          <div aria-hidden="true">
+            <div class="boot-top">
+              <div class="boot-brand"><span class="boot-bar boot-icon"></span><span class="boot-bar boot-title"></span><span class="boot-separator"></span><span class="boot-bar boot-description"></span></div>
+              <div class="boot-actions"><span class="boot-bar boot-action"></span><span class="boot-bar boot-action"></span><span class="boot-bar boot-action"></span><span class="boot-bar boot-badge"></span></div>
+            </div>
+            <div class="boot-mobile"></div>
+            <div class="boot-intro"><span class="boot-bar"></span><span class="boot-bar"></span></div>
+            <div class="boot-home">
+              <div class="boot-stats"><div class="boot-stat"><div class="boot-stat-label"><span class="boot-bar"></span></div><div class="boot-stat-value"><span class="boot-bar"></span></div></div><div class="boot-stat"><div class="boot-stat-label"><span class="boot-bar"></span></div><div class="boot-stat-value"><span class="boot-bar"></span></div></div><div class="boot-stat"><div class="boot-stat-label"><span class="boot-bar"></span></div><div class="boot-stat-value"><span class="boot-bar"></span></div></div><div class="boot-stat"><div class="boot-stat-label"><span class="boot-bar"></span></div><div class="boot-stat-total"><span class="boot-bar"></span></div><div class="boot-stat-speeds"><div class="boot-stat-speed"><span class="boot-bar"></span></div><div class="boot-stat-speed"><span class="boot-bar"></span></div></div></div></div>
+              <div class="boot-filters"><div class="boot-filter-items"><span class="boot-bar"></span><span class="boot-bar"></span><span class="boot-bar"></span><span class="boot-bar boot-filter-group"></span><span class="boot-bar boot-filter-region"></span></div><span class="boot-bar"></span></div>
+              <div class="boot-message"><span class="boot-spinner" aria-hidden="true"><span class="boot-spinner-inner" style="display:block"><span class="boot-spinner-bar"></span><span class="boot-spinner-bar"></span><span class="boot-spinner-bar"></span><span class="boot-spinner-bar"></span><span class="boot-spinner-bar"></span><span class="boot-spinner-bar"></span><span class="boot-spinner-bar"></span><span class="boot-spinner-bar"></span></span></span><span>Loading…</span></div>
+            </div>
+          </div>
+          <noscript>Enable JavaScript to view this dashboard.</noscript>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

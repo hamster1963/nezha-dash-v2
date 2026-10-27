@@ -8,9 +8,11 @@ import { useStatus } from "@/hooks/use-status";
 import { formatBytes } from "@/lib/format";
 import { useRuntimeConfig } from "@/lib/runtime-config";
 import { cn } from "@/lib/utils";
+import SkeletonBar from "./loading/SkeletonBar";
 import NumericText from "./NumericText";
 
 type ServerOverviewProps = {
+	loading?: boolean;
 	online: number;
 	offline: number;
 	total: number;
@@ -21,6 +23,7 @@ type ServerOverviewProps = {
 };
 
 export default function ServerOverview({
+	loading = false,
 	online,
 	offline,
 	total,
@@ -39,7 +42,13 @@ export default function ServerOverview({
 	} = useRuntimeConfig();
 
 	return (
-		<section className="grid grid-cols-2 gap-4 lg:grid-cols-4 server-overview">
+		<section
+			aria-busy={loading}
+			className={cn(
+				"grid grid-cols-2 gap-4 lg:grid-cols-4 server-overview",
+				loading && "pointer-events-none",
+			)}
+		>
 			<Card
 				onClick={() => {
 					setStatus("all");
@@ -51,7 +60,13 @@ export default function ServerOverview({
 					},
 				)}
 			>
-				<CardContent className="flex h-full items-center px-6 py-3">
+				<CardContent
+					className={cn(
+						"relative flex h-full items-center px-6 py-3",
+						loading && "[&>section]:invisible",
+					)}
+				>
+					{loading && <OverviewPlaceholder />}
 					<section className="flex flex-col gap-1">
 						<p className="text-sm font-medium md:text-base">
 							{t("serverOverview.totalServers")}
@@ -80,7 +95,13 @@ export default function ServerOverview({
 					},
 				)}
 			>
-				<CardContent className="flex h-full items-center px-6 py-3">
+				<CardContent
+					className={cn(
+						"relative flex h-full items-center px-6 py-3",
+						loading && "[&>section]:invisible",
+					)}
+				>
+					{loading && <OverviewPlaceholder />}
 					<section className="flex flex-col gap-1">
 						<p className="text-sm font-medium md:text-base">
 							{t("serverOverview.onlineServers")}
@@ -109,7 +130,13 @@ export default function ServerOverview({
 					},
 				)}
 			>
-				<CardContent className="flex h-full items-center px-6 py-3">
+				<CardContent
+					className={cn(
+						"relative flex h-full items-center px-6 py-3",
+						loading && "[&>section]:invisible",
+					)}
+				>
+					{loading && <OverviewPlaceholder />}
 					<section className="flex flex-col gap-1">
 						<p className="text-sm font-medium md:text-base">
 							{t("serverOverview.offlineServers")}
@@ -131,7 +158,13 @@ export default function ServerOverview({
 					},
 				)}
 			>
-				<CardContent className="flex h-full items-center relative px-6 py-3">
+				<CardContent
+					className={cn(
+						"flex h-full items-center relative px-6 py-3",
+						loading && "[&>section]:invisible",
+					)}
+				>
+					{loading && <OverviewPlaceholder network />}
 					<section className="flex flex-col gap-1 w-full">
 						<div className="flex items-center w-full justify-between">
 							<p className="text-sm font-medium md:text-base">
@@ -159,7 +192,7 @@ export default function ServerOverview({
 							</p>
 						</section>
 					</section>
-					{!disableAnimatedMan && (
+					{!loading && !disableAnimatedMan && (
 						<img
 							className="absolute right-3 top-[-85px] z-50 w-20 scale-90 group-hover:opacity-50 md:scale-100 transition-all"
 							alt={"animated-man"}
@@ -170,5 +203,36 @@ export default function ServerOverview({
 				</CardContent>
 			</Card>
 		</section>
+	);
+}
+
+function OverviewPlaceholder({ network = false }: { network?: boolean }) {
+	return (
+		<div
+			aria-hidden="true"
+			className="absolute inset-x-6 inset-y-3 flex flex-col justify-center gap-1"
+		>
+			<div className="flex h-5 items-center md:h-6">
+				<SkeletonBar className="h-4 w-20 max-w-full" />
+			</div>
+			{network ? (
+				<>
+					<div className="flex h-[15px] items-center sm:h-[18px]">
+						<SkeletonBar className="h-3 w-28 max-w-full" />
+					</div>
+					<div className="flex flex-col gap-1 sm:flex-row">
+						{[0, 1].map((key) => (
+							<div key={key} className="flex h-[16.5px] items-center">
+								<SkeletonBar className="h-3 w-14" />
+							</div>
+						))}
+					</div>
+				</>
+			) : (
+				<div className="flex h-7 items-center">
+					<SkeletonBar className="h-5 w-12" />
+				</div>
+			)}
+		</div>
 	);
 }

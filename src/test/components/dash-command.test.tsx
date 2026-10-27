@@ -80,6 +80,25 @@ describe("DashCommand", () => {
 		expect(container).toBeEmptyDOMElement();
 	});
 
+	it("adds no layout element when websocket connects with the command dialog closed", () => {
+		dashMocks.isOpen = false;
+		dashMocks.connected = false;
+		const { container, rerender } = render(<DashCommand />);
+		expect(container).toBeEmptyDOMElement();
+		seedWebSocketData();
+		rerender(<DashCommand />);
+		expect(container).toBeEmptyDOMElement();
+	});
+
+	it("keeps the accessible title inside the open dialog", () => {
+		seedWebSocketData();
+		render(<DashCommand />);
+		const dialog = screen.getByRole("dialog", { name: "Command palette" });
+		expect(dialog).toContainElement(
+			screen.getByRole("heading", { name: "Command palette" }),
+		);
+	});
+
 	it("does not mount server command items while the dialog is closed", () => {
 		seedWebSocketData();
 		dashMocks.isOpen = false;

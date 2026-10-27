@@ -118,6 +118,29 @@ describe("Header", () => {
 		headerMocks.fetchLoginUser.mockRejectedValue(new Error("anonymous"));
 	});
 
+	it("uses branding skeletons until settings arrive", async () => {
+		let resolveSettings!: (value: ReturnType<typeof settingResponse>) => void;
+		headerMocks.fetchSetting.mockImplementation(
+			() =>
+				new Promise((resolve) => {
+					resolveSettings = resolve;
+				}),
+		);
+		const { container } = renderHeader();
+		expect(screen.queryByAltText("apple-touch-icon")).not.toBeInTheDocument();
+		expect(screen.queryByText("NEZHA")).not.toBeInTheDocument();
+		expect(
+			container.querySelector("[aria-busy='true'] .header-logo img"),
+		).toBeNull();
+		expect(
+			container.querySelector("[aria-busy='true'] .header-logo > div"),
+		).toBeInTheDocument();
+		await act(async () => resolveSettings(settingResponse("Status Hub")));
+		expect(await screen.findByText("Status Hub")).toBeInTheDocument();
+		expect(screen.getByAltText("apple-touch-icon")).toBeInTheDocument();
+		expect(container.querySelector("[aria-busy='true']")).toBeNull();
+	});
+
 	it("renders configured site identity, custom links, online count, and dashboard state", async () => {
 		const user = userEvent.setup();
 		Object.assign(window, {

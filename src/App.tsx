@@ -14,7 +14,6 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import Footer from "./components/Footer";
 import Header, { RefreshToast } from "./components/Header";
 import LocalErrorBoundary from "./components/LocalErrorBoundary";
-import InitializationSplash from "./components/loading/InitializationSplash";
 import { ServerDetailPageLoading } from "./components/loading/ServerDetailLoading";
 import RetryableLazy from "./components/RetryableLazy";
 import { useBackground } from "./hooks/use-background";
@@ -59,7 +58,11 @@ const toError = (error: unknown) => {
 
 const MainApp: React.FC = () => {
 	const { pathname } = useLocation();
-	const { data: settingData, error } = useQuery({
+	const {
+		data: settingData,
+		error,
+		isPending: settingsPending,
+	} = useQuery({
 		queryKey: ["setting"],
 		queryFn: () => fetchSetting(),
 		refetchOnMount: true,
@@ -73,12 +76,9 @@ const MainApp: React.FC = () => {
 		code: string;
 		status: "loading" | "ready" | "error";
 		error?: Error;
-	}>({ code: "", status: "ready" });
-	const {
-		forceTheme,
-		customLogo,
-		mobileBackgroundImage: customMobileBackgroundImage,
-	} = useRuntimeConfig();
+	}>({ code: "", status: "loading" });
+	const { forceTheme, mobileBackgroundImage: customMobileBackgroundImage } =
+		useRuntimeConfig();
 	const { backgroundImage: customBackgroundImage } = useBackground();
 
 	useEffect(() => {
@@ -87,6 +87,7 @@ const MainApp: React.FC = () => {
 	}, []);
 
 	useEffect(() => {
+		if (settingsPending) return;
 		const controller = new AbortController();
 		let cleanup: (() => void) | undefined;
 		setInitialization({ code: customCode, status: "loading" });
@@ -118,7 +119,7 @@ const MainApp: React.FC = () => {
 			controller.abort();
 			cleanup?.();
 		};
-	}, [customCode]);
+	}, [customCode, settingsPending]);
 
 	const language = settingData?.data?.config?.language;
 	useEffect(() => {
@@ -137,12 +138,10 @@ const MainApp: React.FC = () => {
 
 	const initialBackendError = !settingData ? toError(error) : null;
 
-	if (
+	const configurationLoading =
+		settingsPending ||
 		initialization.code !== customCode ||
-		initialization.status === "loading"
-	) {
-		return <InitializationSplash logo={customLogo} />;
-	}
+		initialization.status === "loading";
 
 	return (
 		<ErrorBoundary>
@@ -178,13 +177,18 @@ const MainApp: React.FC = () => {
 			>
 				<main className="flex z-20 min-h-[calc(100vh-calc(var(--spacing)*16))] flex-1 flex-col gap-4 p-4 md:p-10 md:pt-8">
 					<RefreshToast />
-					<Header />
+					<Header configurationLoading={configurationLoading} />
 					<DashCommand />
 					<LocalErrorBoundary resetKey={pathname} allowReload>
 						<Routes>
 							<Route
 								path="/"
-								element={<Server backendError={initialBackendError} />}
+								element={
+									<Server
+										backendError={initialBackendError}
+										configurationLoading={configurationLoading}
+									/>
+								}
 							/>
 							<Route path="/server/:id" element={<ServerDetail />} />
 							<Route path="/error" element={<ErrorPage />} />

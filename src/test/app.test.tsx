@@ -29,7 +29,9 @@ vi.mock("../components/Footer", () => ({
 }));
 
 vi.mock("../components/Header", () => ({
-	default: () => <header>header</header>,
+	default: ({ configurationLoading }: { configurationLoading?: boolean }) => (
+		<header aria-busy={configurationLoading}>header</header>
+	),
 	RefreshToast: () => <div>refresh-toast</div>,
 }));
 
@@ -164,21 +166,14 @@ describe("App", () => {
 		).toBe(true);
 	});
 
-	it("renders the app shell while initial settings are still pending", async () => {
-		appMocks.fetchSetting.mockImplementation(
-			() => new Promise(() => undefined),
-		);
-
+	it("shows the backend error without blocking the shell", async () => {
+		appMocks.fetchSetting.mockRejectedValue(new Error("settings unavailable"));
 		renderApp();
-
-		expect(await screen.findByText("server-page")).toBeInTheDocument();
-		expect(screen.getByText("refresh-toast")).toBeInTheDocument();
-		expect(screen.getByText("header")).toBeInTheDocument();
-		expect(screen.getByText("dash-command")).toBeInTheDocument();
-		expect(screen.getByText("footer")).toBeInTheDocument();
+		expect(await screen.findByText("settings unavailable")).toBeInTheDocument();
+		expect(screen.queryByRole("status")).not.toBeInTheDocument();
 	});
 
-	it("injects custom code before showing the app shell", async () => {
+	it("injects custom code while keeping the app shell visible", async () => {
 		appMocks.fetchSetting.mockResolvedValue(
 			settingResponse("<script>custom</script>"),
 		);
@@ -208,46 +203,45 @@ describe("App", () => {
 		);
 		renderApp();
 		await waitFor(() => expect(reject).toBeDefined());
-		expect(screen.getByRole("status")).toHaveTextContent(
-			"Loading dashboard configuration",
-		);
-		expect(screen.queryByText("server-page")).not.toBeInTheDocument();
+		expect(screen.getByText("header")).toHaveAttribute("aria-busy", "true");
+		expect(screen.getByText("server-page")).toBeInTheDocument();
 		await act(async () => reject(new Error("resource failed")));
 		expect(screen.queryByRole("status")).not.toBeInTheDocument();
 		expect(screen.getByRole("alert")).toHaveTextContent("resource failed");
 		expect(screen.getByText("server-page")).toBeInTheDocument();
 	});
 
-	it("shows the logo until initialization completes, then reveals the shell without a delay", async () => {
+	it("keeps the shell visible and header busy while fetching settings and initializing scripts", async () => {
+		appMocks.injectContext.mockClear();
+		let resolveSettings!: (value: ReturnType<typeof settingResponse>) => void;
 		let finish!: () => void;
-		appMocks.fetchSetting.mockResolvedValue(
-			settingResponse("<script src='/slow.js'></script>"),
+		appMocks.fetchSetting.mockImplementation(
+			() =>
+				new Promise((resolve) => {
+					resolveSettings = resolve;
+				}),
 		);
-		appMocks.injectContext.mockImplementation((code: string) =>
-			code
-				? new Promise<void>((resolve) => {
-						finish = resolve;
-					})
-				: Promise.resolve(),
+		appMocks.injectContext.mockImplementation(
+			() =>
+				new Promise<void>((resolve) => {
+					finish = resolve;
+				}),
 		);
 		renderApp();
-		await waitFor(() => expect(finish).toBeDefined());
-		const status = screen.getByRole("status");
-		expect(status.querySelector("img")).toHaveAttribute(
-			"src",
-			"/apple-touch-icon.png",
-		);
-		expect(screen.getByText("Loading dashboard configuration…")).toHaveClass(
-			"sr-only",
-		);
-		expect(screen.queryByText("header")).not.toBeInTheDocument();
-		act(() => {
-			window.CustomLogo = "/brand.svg";
-		});
-		expect(status.querySelector("img")).toHaveAttribute("src", "/brand.svg");
-		await act(async () => finish());
-		expect(screen.queryByRole("status")).not.toBeInTheDocument();
+		expect(screen.getByText("header")).toHaveAttribute("aria-busy", "true");
 		expect(screen.getByText("header")).toBeInTheDocument();
+		await act(async () => {});
+		expect(screen.getByText("server-page")).toBeInTheDocument();
+		expect(appMocks.injectContext).not.toHaveBeenCalled();
+		await act(async () =>
+			resolveSettings(settingResponse("<script src='/slow.js'></script>")),
+		);
+		await waitFor(() => expect(finish).toBeDefined());
+		expect(screen.getByText("header")).toHaveAttribute("aria-busy", "true");
+		expect(screen.getByText("header")).toBeInTheDocument();
+		await act(async () => finish());
+		expect(screen.getByText("header")).toHaveAttribute("aria-busy", "false");
+		expect(screen.queryByRole("status")).not.toBeInTheDocument();
 		expect(screen.getByText("server-page")).toBeInTheDocument();
 	});
 
@@ -271,7 +265,7 @@ describe("App", () => {
 		act(() => {
 			queryClient.setQueryData(["setting"], settingResponse("new"));
 		});
-		await screen.findByText("server-page");
+		await waitFor(() => expect(oldSignal.aborted).toBe(true));
 		expect(oldSignal.aborted).toBe(true);
 		const cleanup = vi.fn();
 		await act(async () => finishOld(cleanup));

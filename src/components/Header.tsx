@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { Loader, LoadingSpinner } from "./loading/Loader";
+import SkeletonBar from "./loading/SkeletonBar";
 import NumericText from "./NumericText";
 import { SearchButton } from "./SearchButton";
 import { Button } from "./ui/button";
@@ -50,7 +51,11 @@ const useCurrentTime = () => {
 	return time;
 };
 
-function Header() {
+function Header({
+	configurationLoading = false,
+}: {
+	configurationLoading?: boolean;
+}) {
 	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const { backgroundImage, updateBackground } = useBackground();
@@ -68,6 +73,7 @@ function Header() {
 	const onlineCount = connected ? (lastData ? lastData.online || 0 : 0) : "...";
 
 	const siteName = settingData?.data?.config?.site_name;
+	const brandingLoading = isLoading || configurationLoading;
 
 	const config = useRuntimeConfig();
 	const customLogo = config.customLogo || "/apple-touch-icon.png";
@@ -115,19 +121,27 @@ function Header() {
 						safeSessionStorage.removeItem("selectedGroup");
 						navigate("/");
 					}}
+					aria-busy={brandingLoading}
 					className="cursor-pointer flex items-center sm:text-base text-sm font-medium"
 				>
 					<div className="mr-1 flex flex-row items-center justify-start header-logo">
-						<img
-							width={40}
-							height={40}
-							alt="apple-touch-icon"
-							src={customLogo}
-							className="relative m-0! border-2 border-transparent h-6 w-6 object-cover object-top p-0!"
-						/>
+						{brandingLoading ? (
+							<Skeleton
+								aria-hidden="true"
+								className="h-6 w-6 rounded-md bg-muted-foreground/10 motion-reduce:animate-none"
+							/>
+						) : (
+							<img
+								width={40}
+								height={40}
+								alt="apple-touch-icon"
+								src={customLogo}
+								className="relative m-0! border-2 border-transparent h-6 w-6 object-cover object-top p-0!"
+							/>
+						)}
 					</div>
-					{isLoading ? (
-						<Skeleton className="h-6 w-20 rounded-[5px] bg-muted-foreground/10 animate-none" />
+					{brandingLoading ? (
+						<Skeleton className="h-6 w-20 rounded-[5px] bg-muted-foreground/10 motion-reduce:animate-none" />
 					) : (
 						siteName || "NEZHA"
 					)}
@@ -135,9 +149,16 @@ function Header() {
 						orientation="vertical"
 						className="mx-2 hidden h-4 w-px md:block"
 					/>
-					<p className="hidden text-sm font-medium opacity-40 md:block">
-						{customDesc}
-					</p>
+					{brandingLoading ? (
+						<Skeleton
+							aria-hidden="true"
+							className="hidden h-4 w-28 bg-muted-foreground/10 motion-reduce:animate-none md:block"
+						/>
+					) : (
+						<p className="hidden text-sm font-medium opacity-40 md:block">
+							{customDesc}
+						</p>
+					)}
 				</section>
 				<section className="flex items-center gap-2 header-handles">
 					<div className="hidden sm:flex items-center gap-2">
@@ -173,7 +194,9 @@ function Header() {
 							},
 						)}
 					>
-						{connected ? (
+						{connected && !lastData ? (
+							<SkeletonBar className="h-4 w-4" />
+						) : connected ? (
 							<NumericText value={onlineCount} />
 						) : (
 							<Loader visible={true} />
@@ -193,7 +216,7 @@ function Header() {
 				<DashboardLink />
 				<Links />
 			</div>
-			<Overview />
+			<Overview loading={brandingLoading} />
 		</div>
 	);
 }
@@ -304,7 +327,7 @@ function DashboardLink() {
 	);
 }
 
-function Overview() {
+function Overview({ loading }: { loading: boolean }) {
 	const { t } = useTranslation();
 	const time = useCurrentTime();
 	const [mounted, setMounted] = useState(false);
@@ -312,6 +335,18 @@ function Overview() {
 	useEffect(() => {
 		setMounted(true);
 	}, []);
+
+	if (loading) {
+		return (
+			<section
+				aria-hidden="true"
+				className="mt-10 flex h-[45px] flex-col justify-center gap-2 md:mt-16 header-timer"
+			>
+				<SkeletonBar className="h-5 w-28" />
+				<SkeletonBar className="h-4 w-48" />
+			</section>
+		);
+	}
 
 	return (
 		<section className={"mt-10 flex flex-col md:mt-16 header-timer"}>

@@ -1,8 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { useTranslation } from "react-i18next";
 import GlobalMap from "@/components/GlobalMap";
-import { Loader } from "@/components/loading/Loader";
+import HomeSkeleton from "@/components/loading/HomeSkeleton";
 import ServerOverview from "@/components/ServerOverview";
 import { ServiceTracker } from "@/components/ServiceTracker";
 import {
@@ -22,10 +21,11 @@ import { useRuntimeConfig } from "@/lib/runtime-config";
 
 export default function Servers({
 	backendError,
+	configurationLoading = false,
 }: {
 	backendError?: Error | null;
+	configurationLoading?: boolean;
 }) {
-	const { t } = useTranslation();
 	const sort = useSort();
 	const { sortType, sortOrder } = sort;
 	const { data: groupData, error: groupError } = useQuery({
@@ -44,7 +44,7 @@ export default function Servers({
 	const hasServices =
 		!!serviceData?.data?.services &&
 		Object.keys(serviceData.data.services).length > 0;
-	const { lastData, connected } = useWebSocketContext();
+	const { lastData } = useWebSocketContext();
 	const { status } = useStatus();
 	const nezhaWsData = lastData;
 	const preferences = useServerPreferences(hasServices, nezhaWsData);
@@ -88,23 +88,8 @@ export default function Servers({
 		return <BackendErrorState error={currentBackendError} />;
 	}
 
-	if (!connected && !lastData) {
-		return (
-			<div className="flex flex-col items-center min-h-96 justify-center ">
-				<div className="font-semibold flex items-center gap-2 text-sm">
-					<Loader visible={true} />
-					{t("info.websocketConnecting")}
-				</div>
-			</div>
-		);
-	}
-
-	if (!nezhaWsData) {
-		return (
-			<div className="flex flex-col items-center justify-center ">
-				<p className="font-semibold text-sm">{t("info.processing")}</p>
-			</div>
-		);
+	if (!nezhaWsData || configurationLoading) {
+		return <HomeSkeleton />;
 	}
 
 	const hasServers = nezhaWsData.servers.length > 0;

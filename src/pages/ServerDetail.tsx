@@ -23,13 +23,18 @@ const loadOnlineHistory = () =>
 		default: module.default,
 	}));
 
+const loadTrafficTab = () =>
+	import("@/features/server-detail/TrafficTab").then((module) => ({
+		default: module.TrafficTab,
+	}));
+
 export default function ServerDetail() {
 	const { t } = useTranslation();
 	useEffect(() => {
 		window.scrollTo({ top: 0, left: 0, behavior: "instant" });
 	}, []);
 
-	const tabs = ["Detail", "Network", "Online"];
+	const tabs = ["Detail", "Network", "Online", "Traffic"];
 	const [currentTab, setCurrentTab] = useState(tabs[0]);
 
 	const { id: server_id } = useParams();
@@ -43,7 +48,7 @@ export default function ServerDetail() {
 			<ServerDetailOverview server_id={server_id} />
 			<section className="flex items-center my-2 w-full">
 				<Separator className="flex-1" />
-				<div className="flex justify-center w-full max-w-50">
+				<div className="flex justify-center w-full max-w-full">
 					<TabSwitch
 						tabs={tabs}
 						currentTab={currentTab}
@@ -81,6 +86,15 @@ export default function ServerDetail() {
 					load={loadOnlineHistory}
 					componentProps={{ server_id }}
 					fallback={<OnlineHistorySkeleton />}
+					resetKey={server_id}
+					title={t("error.chartFailed")}
+				/>
+			)}
+			{currentTab === tabs[3] && (
+				<RetryableLazy
+					load={loadTrafficTab}
+					componentProps={{ server_id: Number(server_id) }}
+					fallback={<NetworkChartLoading />}
 					resetKey={server_id}
 					title={t("error.chartFailed")}
 				/>

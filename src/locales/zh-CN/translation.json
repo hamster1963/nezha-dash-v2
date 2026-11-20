@@ -121,7 +121,21 @@
 	"tabSwitch": {
 		"Detail": "详情",
 		"Network": "网络",
-		"Online": "在线"
+		"Online": "在线",
+		"Traffic": "流量"
+	},
+	"serverTraffic": {
+		"period1d": "1 天",
+		"period7d": "7 天",
+		"period30d": "30 天",
+		"hourTrend": "每小时流量",
+		"dayTrend": "每日流量",
+		"download": "下载",
+		"upload": "上传",
+		"total": "合计",
+		"loginForMoreHistory": "登录后可查看 7 天和 30 天历史。",
+		"noData": "此周期暂无流量历史数据。",
+		"tsdbHint": "历史流量需要后端启用 TSDB，且当前账号有权查看此服务器。"
 	},
 	"monitor": {
 		"noData": "没有服务监控数据，请在管理后台服务页添加监控任务",

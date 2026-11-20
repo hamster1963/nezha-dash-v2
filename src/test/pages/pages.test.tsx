@@ -13,6 +13,12 @@ vi.mock("@/components/NetworkChart", () => ({
 	),
 }));
 
+vi.mock("@/features/server-detail/TrafficTab", () => ({
+	TrafficTab: ({ server_id }: { server_id: number }) => (
+		<div data-testid="traffic-tab">{server_id}</div>
+	),
+}));
+
 vi.mock("@/components/ServerDetailChart", () => ({
 	default: ({ server_id }: { server_id: string }) => (
 		<div data-testid="detail-chart">{server_id}</div>
@@ -130,6 +136,21 @@ describe("ServerDetail", () => {
 		expect(await screen.findByTestId("network-chart")).toHaveTextContent(
 			"7:true",
 		);
+		expect(screen.queryByTestId("detail-chart")).not.toBeInTheDocument();
+	});
+
+	it("opens the traffic tab for the selected server", async () => {
+		const user = userEvent.setup();
+		render(
+			<MemoryRouter initialEntries={["/server/7"]}>
+				<Routes>
+					<Route path="/server/:id" element={<ServerDetail />} />
+				</Routes>
+			</MemoryRouter>,
+		);
+
+		await user.click(screen.getByRole("button", { name: "Traffic" }));
+		expect(await screen.findByTestId("traffic-tab")).toHaveTextContent("7");
 		expect(screen.queryByTestId("detail-chart")).not.toBeInTheDocument();
 	});
 

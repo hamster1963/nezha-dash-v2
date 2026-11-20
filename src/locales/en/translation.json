@@ -127,7 +127,21 @@
 	"tabSwitch": {
 		"Detail": "Detail",
 		"Network": "Network",
-		"Online": "Online"
+		"Online": "Online",
+		"Traffic": "Traffic"
+	},
+	"serverTraffic": {
+		"period1d": "1 Day",
+		"period7d": "7 Days",
+		"period30d": "30 Days",
+		"hourTrend": "Hourly traffic",
+		"dayTrend": "Daily traffic",
+		"download": "Download",
+		"upload": "Upload",
+		"total": "Total",
+		"loginForMoreHistory": "Log in to view 7- and 30-day history.",
+		"noData": "No traffic history is available for this period.",
+		"tsdbHint": "Historical traffic requires TSDB to be enabled and permission to view this server."
 	},
 	"monitor": {
 		"noData": "No server monitor data, please add a service monitor first",

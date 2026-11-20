@@ -26,6 +26,11 @@ vi.mock("@/components/NetworkChart", () => ({
 vi.mock("@/components/ServerDetailOnlineHistory", () => ({
 	default: () => <p>online history</p>,
 }));
+vi.mock("@/features/server-detail/TrafficTab", () => ({
+	TrafficTab: ({ server_id }: { server_id: number }) => (
+		<p>traffic history {server_id}</p>
+	),
+}));
 vi.mock("@/components/TabSwitch", () => ({
 	default: ({
 		tabs,

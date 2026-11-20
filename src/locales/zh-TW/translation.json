@@ -120,7 +120,21 @@
 		"network": "網路",
 		"Detail": "詳細資訊",
 		"Network": "網路",
-		"Online": "線上"
+		"Online": "線上",
+		"Traffic": "流量"
+	},
+	"serverTraffic": {
+		"period1d": "1 天",
+		"period7d": "7 天",
+		"period30d": "30 天",
+		"hourTrend": "每小時流量",
+		"dayTrend": "每日流量",
+		"download": "下載",
+		"upload": "上傳",
+		"total": "合計",
+		"loginForMoreHistory": "登入後可查看 7 天和 30 天歷史資料。",
+		"noData": "此週期沒有可用的流量歷史資料。",
+		"tsdbHint": "歷史流量需要後端啟用 TSDB，且目前帳號有權限查看此伺服器。"
 	},
 	"monitor": {
 		"noData": "沒有伺服器監控資料，請先新增服務監控",

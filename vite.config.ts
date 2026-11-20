@@ -1,6 +1,7 @@
 import { execSync } from "node:child_process";
 import path from "node:path";
 import react from "@vitejs/plugin-react";
+import { loadEnv } from "vite";
 import { defineConfig } from "vitest/config";
 
 // Node ≥25 默认启用实验性 webstorage：其全局 localStorage 在无有效存储文件时
@@ -39,6 +40,17 @@ const getVendorChunkName = (moduleId: string) => {
 	return packageName || null;
 };
 
+const env = loadEnv("development", process.cwd(), "");
+const configuredApiTarget =
+	env.NEZHA_API_PROXY_TARGET || "http://localhost:8008";
+const apiTargetUrl = new URL(configuredApiTarget);
+if (!["http:", "https:"].includes(apiTargetUrl.protocol)) {
+	throw new Error("NEZHA_API_PROXY_TARGET must use http or https");
+}
+const webSocketTargetUrl = new URL(apiTargetUrl);
+webSocketTargetUrl.protocol =
+	apiTargetUrl.protocol === "https:" ? "wss:" : "ws:";
+
 // https://vite.dev/config/
 export default defineConfig({
 	base: "/",
@@ -53,14 +65,23 @@ export default defineConfig({
 	},
 	server: {
 		proxy: {
-			"/api/v1/ws/server": {
-				target: "ws://localhost:8008",
+			"/dashboard": {
+				target: apiTargetUrl.origin,
 				changeOrigin: true,
+				cookieDomainRewrite: "",
+			},
+			"/api/v1/ws/server": {
+				target: webSocketTargetUrl.origin,
+				changeOrigin: true,
+				headers: { origin: apiTargetUrl.origin },
 				ws: true,
+				cookieDomainRewrite: "",
 			},
 			"/api/v1/": {
-				target: "http://localhost:8008",
+				target: apiTargetUrl.origin,
 				changeOrigin: true,
+				headers: { origin: apiTargetUrl.origin },
+				cookieDomainRewrite: "",
 			},
 		},
 		headers: {
